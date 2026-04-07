@@ -134,6 +134,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Delete tag if already exists (handles re-runs / duplicate pushes)
+          git tag -d ${{ steps.version.outputs.new_tag }} 2>/dev/null || true
+          git push origin :refs/tags/${{ steps.version.outputs.new_tag }} 2>/dev/null || true
           git tag ${{ steps.version.outputs.new_tag }}
           git push origin ${{ steps.version.outputs.new_tag }}
 
@@ -154,3 +157,5 @@ jobs:
             app/build/outputs/apk/release/BizarreX-${{ steps.version.outputs.new_tag }}.apk
           draft: false
           prerelease: false
+          make_latest: true
+          fail_on_unmatched_files: false
