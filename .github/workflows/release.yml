@@ -90,6 +90,10 @@ jobs:
         run: echo "$GOOGLE_SERVICES_JSON" > app/google-services.json
 
       # ── Build Release APK ────────────────────────────────────────────────────
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/bizarrex-release.jks
+
       - name: Build release APK
         run: |
           ./gradlew assembleRelease \
@@ -100,10 +104,30 @@ jobs:
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
 
-      - name: Rename APK
+      - name: Sign APK
         run: |
-          mv app/build/outputs/apk/release/app-release-unsigned.apk \
-             app/build/outputs/apk/release/BizarreX-${{ steps.version.outputs.new_tag }}.apk
+          # Find build tools version dynamically
+          BUILD_TOOLS=$(ls $ANDROID_HOME/build-tools/ | sort -V | tail -1)
+          echo "Using build-tools: $BUILD_TOOLS"
+          
+          UNSIGNED="app/build/outputs/apk/release/app-release-unsigned.apk"
+          ALIGNED="app/build/outputs/apk/release/app-release-aligned.apk"
+          SIGNED="app/build/outputs/apk/release/BizarreX-${{ steps.version.outputs.new_tag }}.apk"
+          
+          # Zipalign for performance
+          $ANDROID_HOME/build-tools/$BUILD_TOOLS/zipalign -v 4 $UNSIGNED $ALIGNED
+          
+          # Sign with apksigner
+          $ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner sign \
+            --ks app/bizarrex-release.jks \
+            --ks-key-alias ${{ secrets.KEY_ALIAS }} \
+            --ks-pass pass:${{ secrets.STORE_PASSWORD }} \
+            --key-pass pass:${{ secrets.KEY_PASSWORD }} \
+            --out $SIGNED \
+            $ALIGNED
+          
+          echo "✅ APK signed: $SIGNED"
+          $ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner verify $SIGNED && echo "✅ Signature verified!"
 
       # ── Tag & Create GitHub Release ──────────────────────────────────────────
       - name: Create Git Tag
