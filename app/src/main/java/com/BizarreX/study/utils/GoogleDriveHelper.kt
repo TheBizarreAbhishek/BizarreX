@@ -17,7 +17,7 @@ data class DriveVideo(
 
 object GoogleDriveHelper {
     // 🔴 IMPORTANT: Paste the Apps Script Web App URL here!
-    var APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwd5S4NJiAE_uLcsIIkmIl-oSQokMNflE5hHPb-r9h_nOn8QRlFm000MKDHhU-qjOEXRw/exec"
+    var APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0_EBwOv2rhULM4RxbLPZv4gA-OyQgJkmcQuLN5t77uFwO23GQylh3EtbH6_6IAcSwNA/exec"
     
     // Kept exclusively for ExoPlayer raw video streaming
     var API_KEY = "AIzaSyD2L1dmCu7f-DUgtTPWJHG3E4lgE18w5k8" 
