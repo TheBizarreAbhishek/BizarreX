@@ -9,7 +9,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoStories
@@ -27,6 +29,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
@@ -55,9 +58,16 @@ import com.BizarreX.study.utils.VideoDownloadManager
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.isSystemInDarkTheme
+import android.app.DownloadManager
+import android.content.BroadcastReceiver
+import android.content.IntentFilter
+import android.os.Environment
+import androidx.core.content.FileProvider
+import java.io.File
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -100,24 +110,71 @@ fun RootApp(
     }
 
     updateInfo?.let { info ->
+        var isDownloading by remember { mutableStateOf(false) }
+        var downloadId by remember { mutableStateOf(-1L) }
+
+        // Listen for download complete
+        if (downloadId != -1L) {
+            DisposableEffect(downloadId) {
+                val receiver = object : BroadcastReceiver() {
+                    override fun onReceive(ctx: android.content.Context, intent: android.content.Intent) {
+                        val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
+                        if (id == downloadId) {
+                            val apkFile = File(ctx.externalCacheDir, "BizarreX-update.apk")
+                            val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", apkFile)
+                            val installIntent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                                setDataAndType(uri, "application/vnd.android.package-archive")
+                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            ctx.startActivity(installIntent)
+                        }
+                    }
+                }
+                context.registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+                onDispose { context.unregisterReceiver(receiver) }
+            }
+        }
+
         AlertDialog(
             onDismissRequest = { /* non-dismissible */ },
             title = { Text("Update Available 🚀", fontWeight = FontWeight.Bold) },
             text = {
                 androidx.compose.foundation.layout.Column {
-                    Text("BizarreX ${info.latestVersion} is available (you have ${info.currentVersion}).")
+                    Text("BizarreX v${info.latestVersion} is available (you have v${info.currentVersion}).")
                     if (info.releaseNotes.isNotBlank()) {
                         androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(4.dp))
                         Text(info.releaseNotes, style = MaterialTheme.typography.bodySmall)
                     }
+                    if (isDownloading) {
+                        androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(12.dp))
+                        Text("Downloading update...", style = MaterialTheme.typography.bodySmall)
+                        androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(6.dp))
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
                 }
             },
             confirmButton = {
-                Button(onClick = {
-                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW,
-                        android.net.Uri.parse(info.apkDownloadUrl))
-                    context.startActivity(intent)
-                }) { Text("Update Now") }
+                Button(
+                    onClick = {
+                        if (!isDownloading) {
+                            isDownloading = true
+                            val dm = context.getSystemService(android.content.Context.DOWNLOAD_SERVICE) as DownloadManager
+                            val apkFile = File(context.externalCacheDir, "BizarreX-update.apk")
+                            if (apkFile.exists()) apkFile.delete()
+                            val req = DownloadManager.Request(android.net.Uri.parse(info.apkDownloadUrl))
+                                .setTitle("BizarreX v${info.latestVersion}")
+                                .setDescription("Downloading update...")
+                                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
+                                .setDestinationUri(android.net.Uri.fromFile(apkFile))
+                                .setAllowedOverMetered(true)
+                            downloadId = dm.enqueue(req)
+                        }
+                    },
+                    enabled = !isDownloading
+                ) {
+                    Text(if (isDownloading) "Downloading..." else "Update Now")
+                }
             },
             dismissButton = null
         )
