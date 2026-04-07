@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "876403273538",
+    "project_id": "bizarrex-1e7dd",
+    "storage_bucket": "bizarrex-1e7dd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:876403273538:android:179e86210b2c9d693de2db",
+        "android_client_info": {
+          "package_name": "com.BizarreX.study"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "876403273538-psspuu16hvuco6jg6mkt4q4sm0rqigcm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.BizarreX.study",
+            "certificate_hash": "ad22a839faa3bf68f13513e470e957800553a0da"
+          }
+        },
+        {
+          "client_id": "876403273538-7439mpnf35i4ve6scll0clmjth3q3nge.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBVknjURXkjD0XisW2PfpLbacM17sZfmV4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "876403273538-7439mpnf35i4ve6scll0clmjth3q3nge.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
