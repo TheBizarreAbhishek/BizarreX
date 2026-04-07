@@ -19,7 +19,9 @@ import com.google.firebase.auth.FirebaseUser
 @Composable
 fun SettingsScreen(
     currentUser: FirebaseUser,
-    onSignOut: () -> Unit
+    onSignOut: () -> Unit,
+    isDarkTheme: Boolean = false,
+    onThemeToggle: (Boolean) -> Unit = {}
 ) {
     val displayName = currentUser.displayName ?: "Student"
     val email = currentUser.email ?: ""
@@ -141,13 +143,12 @@ fun SettingsScreen(
         // Appearance section
         SettingsSectionLabel("Appearance")
         SettingsGroup {
-            var darkMode by remember { mutableStateOf(false) }
             SettingsToggleItem(
                 icon = Icons.Rounded.DarkMode,
                 title = "Dark Mode",
-                subtitle = "Switch to dark theme",
-                checked = darkMode,
-                onCheckedChange = { darkMode = it }
+                subtitle = if (isDarkTheme) "Dark theme active" else "Light theme active",
+                checked = isDarkTheme,
+                onCheckedChange = { onThemeToggle(it) }
             )
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
             var dynamicColor by remember { mutableStateOf(true) }
@@ -183,7 +184,7 @@ fun SettingsScreen(
             SettingsClickItem(
                 icon = Icons.Rounded.Info,
                 title = "App Version",
-                subtitle = "BizarreX v1.0.0"
+                subtitle = "BizarreX v${com.BizarreX.study.BuildConfig.VERSION_NAME}"
             )
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
             SettingsClickItem(

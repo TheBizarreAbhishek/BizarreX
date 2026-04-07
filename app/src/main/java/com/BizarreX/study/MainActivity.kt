@@ -57,36 +57,48 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.isSystemInDarkTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        // Initialize download vault state from disk
         VideoDownloadManager.init(this)
         setContent {
-            BizarreXTheme {
-                RootApp()
+            val prefs = getSharedPreferences("bizarrex_settings", android.content.Context.MODE_PRIVATE)
+            val systemDark = isSystemInDarkTheme()
+            var isDarkTheme by remember {
+                mutableStateOf(prefs.getBoolean("dark_mode", systemDark))
+            }
+            BizarreXTheme(darkTheme = isDarkTheme) {
+                RootApp(
+                    isDarkTheme = isDarkTheme,
+                    onThemeToggle = { enabled ->
+                        isDarkTheme = enabled
+                        prefs.edit().putBoolean("dark_mode", enabled).apply()
+                    }
+                )
             }
         }
     }
 }
 
 @Composable
-fun RootApp() {
+fun RootApp(
+    isDarkTheme: Boolean = false,
+    onThemeToggle: (Boolean) -> Unit = {}
+) {
     val authViewModel: AuthViewModel = viewModel()
     val authState by authViewModel.authState.collectAsState()
     val context = LocalContext.current
     var updateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
 
-    // Check for update in background (skip in debug builds)
     LaunchedEffect(Unit) {
         if (!BuildConfig.DEBUG) {
             updateInfo = UpdateChecker.checkForUpdate()
         }
     }
 
-    // Force-update dialog — non-dismissible
     updateInfo?.let { info ->
         AlertDialog(
             onDismissRequest = { /* non-dismissible */ },
@@ -112,13 +124,13 @@ fun RootApp() {
     }
 
     when (authState) {
-        is AuthState.Loading -> {
-            Box(modifier = Modifier.fillMaxSize())
-        }
+        is AuthState.Loading -> { Box(modifier = Modifier.fillMaxSize()) }
         is AuthState.Authenticated -> {
             BizarreXApp(
                 authViewModel = authViewModel,
-                currentUser = (authState as AuthState.Authenticated).user
+                currentUser = (authState as AuthState.Authenticated).user,
+                isDarkTheme = isDarkTheme,
+                onThemeToggle = onThemeToggle
             )
         }
         is AuthState.Unauthenticated, is AuthState.Error -> {
@@ -146,7 +158,9 @@ val navItems = listOf(
 @Composable
 fun BizarreXApp(
     authViewModel: AuthViewModel,
-    currentUser: com.google.firebase.auth.FirebaseUser
+    currentUser: com.google.firebase.auth.FirebaseUser,
+    isDarkTheme: Boolean = false,
+    onThemeToggle: (Boolean) -> Unit = {}
 ) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     var isBottomBarVisible by rememberSaveable { mutableStateOf(true) }
@@ -188,25 +202,14 @@ fun BizarreXApp(
                 label = "nav_transition"
             ) { tab ->
                 when (tab) {
-                    0 -> StudyScreen(
-                        onFullscreenVisibilityChanged = { isVisible ->
-                            isBottomBarVisible = !isVisible
-                        }
-                    )
-                    1 -> CommunityScreen(
-                        currentUser = currentUser,
-                        onChatVisibilityChanged = { isVisible ->
-                            isBottomBarVisible = !isVisible
-                        }
-                    )
-                    2 -> PlaceholderScreen(
-                        emoji = "🔭",
-                        title = "Explore",
-                        subtitle = "Discover trending topics, exams, and study groups near you!"
-                    )
+                    0 -> StudyScreen(onFullscreenVisibilityChanged = { isVisible -> isBottomBarVisible = !isVisible })
+                    1 -> CommunityScreen(currentUser = currentUser, onChatVisibilityChanged = { isVisible -> isBottomBarVisible = !isVisible })
+                    2 -> PlaceholderScreen(emoji = "🔭", title = "Explore", subtitle = "Discover trending topics, exams, and study groups near you!")
                     3 -> SettingsScreen(
                         currentUser = currentUser,
-                        onSignOut = { authViewModel.signOut() }
+                        onSignOut = { authViewModel.signOut() },
+                        isDarkTheme = isDarkTheme,
+                        onThemeToggle = onThemeToggle
                     )
                 }
             }
