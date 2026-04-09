@@ -44,15 +44,25 @@ def sanitize(name: str) -> str:
 
 # ── DRIVE (Service Account) ───────────────────────────────────────────────────
 
+REFRESH_TOKEN   = os.environ.get("GDRIVE_REFRESH_TOKEN", "")
+CLIENT_ID       = os.environ.get("GDRIVE_CLIENT_ID", "")
+CLIENT_SECRET   = os.environ.get("GDRIVE_CLIENT_SECRET", "")
+
+
 def get_drive_service():
-    from google.oauth2 import service_account
+    from google.oauth2.credentials import Credentials
+    from google.auth.transport.requests import Request
     from googleapiclient.discovery import build
 
-    sa_info = json.loads(SA_KEY)
-    creds = service_account.Credentials.from_service_account_info(
-        sa_info,
+    creds = Credentials(
+        token=None,
+        refresh_token=REFRESH_TOKEN,
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=CLIENT_ID,
+        client_secret=CLIENT_SECRET,
         scopes=["https://www.googleapis.com/auth/drive"]
     )
+    creds.refresh(Request())
     return build("drive", "v3", credentials=creds)
 
 

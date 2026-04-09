@@ -34,7 +34,9 @@ jobs:
       - name: Run Sync
         env:
           CLASSPLUS_TOKEN: ${{ secrets.CLASSPLUS_TOKEN }}
-          GDRIVE_SA_KEY: ${{ secrets.GDRIVE_SA_KEY }}
+          GDRIVE_REFRESH_TOKEN: ${{ secrets.GDRIVE_REFRESH_TOKEN }}
+          GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
+          GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
         run: |
           IDX="${{ github.event.inputs.subject_index }}"
           MAX="${{ github.event.inputs.max_videos }}"
