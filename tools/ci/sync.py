@@ -50,18 +50,29 @@ CLIENT_SECRET   = os.environ.get("GDRIVE_CLIENT_SECRET", "")
 
 def get_drive_service():
     from google.oauth2.credentials import Credentials
-    from google.auth.transport.requests import Request
     from googleapiclient.discovery import build
 
+    # Get fresh access token directly — no library magic, no service account fallback
+    resp = requests.post("https://oauth2.googleapis.com/token", data={
+        "client_id":     CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "refresh_token": REFRESH_TOKEN,
+        "grant_type":    "refresh_token"
+    }, timeout=15)
+    data = resp.json()
+    if "access_token" not in data:
+        raise Exception(f"[ERR] Token refresh failed: {data}")
+
+    access_token = data["access_token"]
+    print(f"  [AUTH] Got access token (type: {data.get('token_type','?')})")
+
     creds = Credentials(
-        token=None,
+        token=access_token,
         refresh_token=REFRESH_TOKEN,
         token_uri="https://oauth2.googleapis.com/token",
         client_id=CLIENT_ID,
-        client_secret=CLIENT_SECRET,
-        scopes=["https://www.googleapis.com/auth/drive"]
+        client_secret=CLIENT_SECRET
     )
-    creds.refresh(Request())
     return build("drive", "v3", credentials=creds)
 
 
