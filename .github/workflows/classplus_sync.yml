@@ -4,7 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       subject_index:
-        description: 'Subject index to download (0=all, 1=first subject, 2=second, etc.)'
+        description: 'Subject index (0=all, 1=first, 2=second...)'
+        required: false
+        default: '0'
+      max_videos:
+        description: 'Max videos per subject (0=all, 1=test with 1)'
         required: false
         default: '0'
 
@@ -33,8 +37,9 @@ jobs:
           GDRIVE_SA_KEY: ${{ secrets.GDRIVE_SA_KEY }}
         run: |
           IDX="${{ github.event.inputs.subject_index }}"
-          if [ "$IDX" = "0" ] || [ -z "$IDX" ]; then
-            python3 tools/ci/sync.py
-          else
-            python3 tools/ci/sync.py --subject-index $((IDX - 1))
-          fi
+          MAX="${{ github.event.inputs.max_videos }}"
+          CMD="python3 tools/ci/sync.py"
+          [ "$IDX" != "0" ] && [ -n "$IDX" ] && CMD="$CMD --subject-index $((IDX - 1))"
+          [ "$MAX" != "0" ] && [ -n "$MAX" ] && CMD="$CMD --max-videos $MAX"
+          echo "Running: $CMD"
+          $CMD

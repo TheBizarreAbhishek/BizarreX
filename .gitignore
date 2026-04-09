@@ -16,3 +16,6 @@ local.properties
 local.properties
 *.jks
 *.keystore
+tools/drive_credentials.json
+tools/drive_token.json
+tools/upload_log.json

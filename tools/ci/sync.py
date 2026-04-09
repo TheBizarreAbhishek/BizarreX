@@ -176,8 +176,9 @@ def download_video(url: str, out: Path, title: str) -> bool:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--subject-index", type=int, default=None,
-                        help="Which subject to process (0-based). If not set, processes all.")
+    parser.add_argument("--subject-index", type=int, default=None)
+    parser.add_argument("--max-videos", type=int, default=None,
+                        help="Max videos per subject (for testing)")
     args = parser.parse_args()
 
     if not TOKEN:
@@ -221,6 +222,8 @@ def main():
         local_folder.mkdir(exist_ok=True)
 
         videos = fetch_videos(subj_id)
+        if args.max_videos:
+            videos = videos[:args.max_videos]
         print(f"[INFO] {len(videos)} videos")
 
         for idx, video in enumerate(videos, 1):
