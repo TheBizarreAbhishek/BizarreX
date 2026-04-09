@@ -59,12 +59,15 @@ def get_drive_service():
 def get_or_create_folder(svc, name: str, parent: str) -> str:
     q = (f"name='{name}' and '{parent}' in parents "
          f"and mimeType='application/vnd.google-apps.folder' and trashed=false")
-    res = svc.files().list(q=q, fields="files(id)").execute()
+    res = svc.files().list(q=q, fields="files(id,name)").execute()
+    print(f"  [FOLDER] Search '{name}': found {len(res.get('files',[]))} results")
     if res.get("files"):
-        return res["files"][0]["id"]
+        fid = res["files"][0]["id"]
+        print(f"  [FOLDER] Using existing: {name} ({fid})")
+        return fid
     meta = {"name": name, "mimeType": "application/vnd.google-apps.folder", "parents": [parent]}
     f = svc.files().create(body=meta, fields="id").execute()
-    print(f"[DIR] Created: {name}")
+    print(f"  [FOLDER] Created new: {name} ({f['id']})")
     return f["id"]
 
 
@@ -72,13 +75,14 @@ def upload_to_drive(svc, file_path: Path, folder_id: str) -> bool:
     from googleapiclient.http import MediaFileUpload
 
     name = file_path.name
-    q = f"name='{name}' and '{folder_id}' in parents and trashed=false"
-    if svc.files().list(q=q, fields="files(id)").execute().get("files"):
-        print(f"[SKIP] Already on Drive: {name}")
-        return True
-
     size_mb = file_path.stat().st_size / 1024 / 1024
-    print(f"[UP] {name} ({size_mb:.1f} MB)")
+    print(f"  [UP] Starting upload: {name} ({size_mb:.1f} MB) -> folder {folder_id}")
+
+    q = f"name='{name}' and '{folder_id}' in parents and trashed=false"
+    existing = svc.files().list(q=q, fields="files(id)").execute().get("files")
+    if existing:
+        print(f"  [SKIP] Already on Drive: {name}")
+        return True
 
     for attempt in range(3):
         try:
@@ -89,15 +93,20 @@ def upload_to_drive(svc, file_path: Path, folder_id: str) -> bool:
                 media_body=media, fields="id"
             )
             resp = None
+            chunk_count = 0
             while resp is None:
-                _, resp = req.next_chunk()
-            print(f"[OK] Uploaded: {name}")
+                status, resp = req.next_chunk()
+                chunk_count += 1
+                if status and chunk_count % 5 == 0:
+                    print(f"  [UP] Progress: {int(status.progress()*100)}%")
+            print(f"  [OK] Uploaded: {name}")
             return True
         except Exception as e:
-            print(f"[WARN] Attempt {attempt+1}/3: {e}")
+            print(f"  [ERR] Upload attempt {attempt+1}/3 failed: {type(e).__name__}: {e}")
             if attempt < 2:
                 time.sleep(5)
     return False
+
 
 
 # ── CLASSPLUS API ─────────────────────────────────────────────────────────────
