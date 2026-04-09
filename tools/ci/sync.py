@@ -234,8 +234,10 @@ def main():
 
             print(f"\n[{idx}/{len(videos)}] {vid_title}")
 
-            if log.get(vid_id) == "done":
-                print("[SKIP] Already uploaded")
+            # Check Drive FIRST — skip download if already uploaded
+            q = f"name='{filename}' and '{drive_folder}' in parents and trashed=false"
+            if svc.files().list(q=q, fields="files(id)").execute().get("files"):
+                print(f"[SKIP] Already on Drive")
                 continue
 
             vid_url = get_video_url(video)
@@ -248,11 +250,10 @@ def main():
                     continue
 
             if upload_to_drive(svc, local, drive_folder):
-                log[vid_id] = "done"
-                log_path.write_text(json.dumps(log, indent=2))
                 local.unlink()
 
             time.sleep(0.5)
+
 
     print("\n[DONE] Finished!")
 
