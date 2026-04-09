@@ -18,7 +18,6 @@ DOWNLOAD_DIR  = Path("./downloads")
 # ─────────────────────────────────────────────────────────────────────────────
 
 TOKEN = os.environ.get("CLASSPLUS_TOKEN", "")
-SA_KEY = os.environ.get("GDRIVE_SA_KEY", "")
 
 HEADERS = {
     "User-Agent":  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:149.0) Gecko/20100101 Firefox/149.0",
@@ -194,8 +193,8 @@ def main():
     if not TOKEN:
         print("[ERR] CLASSPLUS_TOKEN env var not set!")
         sys.exit(1)
-    if not SA_KEY:
-        print("[ERR] GDRIVE_SA_KEY env var not set!")
+    if not REFRESH_TOKEN or not CLIENT_ID or not CLIENT_SECRET:
+        print("[ERR] GDRIVE_REFRESH_TOKEN / CLIENT_ID / CLIENT_SECRET not set!")
         sys.exit(1)
 
     print("[DRIVE] Connecting with service account...")
