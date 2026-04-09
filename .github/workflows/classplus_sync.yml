@@ -1,0 +1,40 @@
+name: Classplus → Google Drive Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      subject_index:
+        description: 'Subject index to download (0=all, 1=first subject, 2=second, etc.)'
+        required: false
+        default: '0'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install yt-dlp
+        run: |
+          pip install yt-dlp
+          pip install -r tools/ci/requirements.txt
+
+      - name: Run Sync
+        env:
+          CLASSPLUS_TOKEN: ${{ secrets.CLASSPLUS_TOKEN }}
+          GDRIVE_SA_KEY: ${{ secrets.GDRIVE_SA_KEY }}
+        run: |
+          IDX="${{ github.event.inputs.subject_index }}"
+          if [ "$IDX" = "0" ] || [ -z "$IDX" ]; then
+            python3 tools/ci/sync.py
+          else
+            python3 tools/ci/sync.py --subject-index $((IDX - 1))
+          fi
