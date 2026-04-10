@@ -172,7 +172,7 @@ fun RootApp(
 
         // ── Update Dialog ────────────────────────────────────────────────
         AlertDialog(
-            onDismissRequest = { if (!isDownloading) updateInfo = null },
+            onDismissRequest = { /* mandatory — cannot dismiss */ },
             title = { Text("Update Available 🚀", fontWeight = FontWeight.Bold) },
             text = {
                 androidx.compose.foundation.layout.Column {
@@ -223,11 +223,7 @@ fun RootApp(
                     ) { Text(if (isDownloading) "Downloading…" else "Download") }
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { updateInfo = null }, enabled = !isDownloading) {
-                    Text("Later")
-                }
-            }
+            dismissButton = null
         )
     }
 
