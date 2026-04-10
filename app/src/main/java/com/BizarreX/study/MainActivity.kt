@@ -57,6 +57,7 @@ import com.BizarreX.study.utils.UpdateInfo
 import com.BizarreX.study.utils.VideoDownloadManager
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.LaunchedEffect
@@ -109,7 +110,8 @@ fun RootApp(
         }
     }
 
-    updateInfo?.let { info ->
+    val info = updateInfo
+    if (info != null) {
         var isDownloading by remember { mutableStateOf(false) }
         var downloadId    by remember { mutableStateOf(-1L) }
         var downloadDone  by remember { mutableStateOf(false) }
