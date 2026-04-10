@@ -155,22 +155,32 @@ def get_video_url(token: str, video_id: str, video_item: dict = None) -> Optiona
         "User-Agent":     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:149.0) Gecko/20100101 Firefox/149.0",
         "api-version":    "52",
     }
+    v = video_item or {}
 
-    # Use contentHashId for the signed URL endpoint
-    content_hash = (video_item or {}).get("contentHashId") or video_id
-    url = f"https://api.classplusapp.com/cams/uploader/video/jw-signed-url?contentId={content_hash}"
+    # Only use contentHashId — avoid extra API calls that waste click limit
+    content_id = v.get("contentHashId") or str(v.get("id", ""))
 
     try:
+        url = f"https://api.classplusapp.com/cams/uploader/video/jw-signed-url?contentId={content_id}"
         r = requests.get(url, headers=h, timeout=15)
+        time.sleep(2)  # ← 2s delay to avoid click limit
         if r.status_code == 200 and r.text.strip():
             data = r.json()
             result = data.get("url") or data.get("videoUrl") or data.get("hlsUrl")
             if result:
                 return result
+        elif r.status_code == 500:
+            print(f"  [LOCKED] Server 500 — video may be content-locked by teacher")
     except Exception as e:
         print(f"  [ERR] get_video_url: {e}")
 
+    # Fallback: direct url field (YouTube/external)
+    direct_url = v.get("url")
+    if direct_url and direct_url.startswith("http"):
+        return direct_url
+
     return None
+
 
 
 
@@ -335,9 +345,18 @@ def main():
                 print(f"  [SKIP] Already processed")
                 continue
 
+            # Get URL first — skip Drive check if no URL available
             vid_url = get_video_url(token, vid_id, video)
             if not vid_url:
                 print(f"  [WARN] No URL found for: {vid_title}")
+                continue
+
+            # Check Drive BEFORE downloading
+            q_check = f"name='{filename}' and '{drive_folder}' in parents and trashed=false"
+            if drive.files().list(q=q_check, fields="files(id)").execute().get("files"):
+                print(f"  [SKIP] Already on Drive")
+                log[vid_id] = "done"
+                log_path.write_text(json.dumps(log, indent=2))
                 continue
 
             if not local.exists():
@@ -351,6 +370,7 @@ def main():
                 print(f"  [DEL] Local file removed (space saved)")
 
             time.sleep(0.5)
+
 
     print("\n\n[DONE] All videos uploaded to Google Drive!")
 

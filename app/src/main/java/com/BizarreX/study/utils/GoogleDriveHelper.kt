@@ -15,12 +15,43 @@ data class DriveVideo(
     val durationMs: Long = 0L
 )
 
+data class DriveFolder(
+    val id: String,
+    val name: String
+)
+
+data class FolderContents(
+    val folderId: String,
+    val folderName: String,
+    val hasSubFolders: Boolean,
+    val folders: List<DriveFolder>,
+    val videos: List<DriveVideo>
+)
+
 object GoogleDriveHelper {
     // 🔴 IMPORTANT: Paste the Apps Script Web App URL here!
     var APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0_EBwOv2rhULM4RxbLPZv4gA-OyQgJkmcQuLN5t77uFwO23GQylh3EtbH6_6IAcSwNA/exec"
     
     // Kept exclusively for ExoPlayer raw video streaming
-    var API_KEY = "AIzaSyD2L1dmCu7f-DUgtTPWJHG3E4lgE18w5k8" 
+    var API_KEY = "AIzaSyD2L1dmCu7f-DUgtTPWJHG3E4lgE18w5k8"
+
+    // Maps app display name → exact Google Drive folder name
+    private val subjectFolderMap = mapOf(
+        "Engg. Mathematics I"              to "Engg. Mathematics I",
+        "Engg. Mathematics II"             to "Engg. Maths-II",
+        "Engg. Physics"                    to "Engg. Physics",
+        "Engg. Chemistry"                  to "Engg. Chemistry",
+        "Electrical Engineering"           to "Electrical Engg.",
+        "Electronics Engineering"          to "Electronics Engg. by Gulshan Sir",
+        "Programming for Problem Solving"  to "Programming for Problem Solving(PPS)",
+        "Fundamentals of Mech. Engg."      to "Fundamentals of Mech. Engg. (FME)",
+        "Environment & Ecology"            to "Environment and Ecology",
+        "Soft Skills"                      to "Soft Skills"
+    )
+
+    /** Converts app subject display name to actual Drive folder name */
+    private fun driveFolderName(subjectName: String): String =
+        subjectFolderMap[subjectName] ?: subjectName
     
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -89,7 +120,8 @@ object GoogleDriveHelper {
         }
         
         try {
-            val encodedSubject = URLEncoder.encode(subjectName, "UTF-8")
+            val folderName = driveFolderName(subjectName)
+            val encodedSubject = URLEncoder.encode(folderName, "UTF-8")
             val url = "$APPS_SCRIPT_URL?subject=$encodedSubject"
             
             val request = Request.Builder().url(url).get().build()
@@ -148,5 +180,69 @@ object GoogleDriveHelper {
             lastError = "Exception: ${e.message}"
         }
         return@withContext null
+    }
+
+    /** Fetch contents of any Drive folder by its ID (returns sub-folders AND/OR videos) */
+    suspend fun fetchFolderContents(folderId: String): FolderContents? = withContext(Dispatchers.IO) {
+        try {
+            val url = "$APPS_SCRIPT_URL?folderId=${java.net.URLEncoder.encode(folderId, "UTF-8")}"
+            val request = Request.Builder().url(url).get().build()
+            client.newCall(request).execute().use { response ->
+                val body = response.body?.string() ?: return@withContext null
+                val json = org.json.JSONObject(body)
+                if (json.has("error")) { lastError = json.getString("error"); return@withContext null }
+                return@withContext parseFolderContents(json)
+            }
+        } catch (e: Exception) {
+            lastError = "Exception: ${e.message}"
+        }
+        return@withContext null
+    }
+
+    /** Fetch top-level folders inside a subject folder by name */
+    suspend fun fetchSubjectFolders(subjectName: String): FolderContents? = withContext(Dispatchers.IO) {
+        val folderName = driveFolderName(subjectName)
+        try {
+            val url = "$APPS_SCRIPT_URL?subject=${java.net.URLEncoder.encode(folderName, "UTF-8")}"
+            val request = Request.Builder().url(url).get().build()
+            client.newCall(request).execute().use { response ->
+                val body = response.body?.string() ?: return@withContext null
+                val json = org.json.JSONObject(body)
+                if (json.has("error")) { lastError = json.getString("error"); return@withContext null }
+                return@withContext parseFolderContents(json)
+            }
+        } catch (e: Exception) {
+            lastError = "Exception: ${e.message}"
+        }
+        return@withContext null
+    }
+
+    private fun parseFolderContents(json: org.json.JSONObject): FolderContents {
+        val folderId   = json.optString("folderId", "")
+        val folderName = json.optString("folderName", "")
+        val hasSubs    = json.optBoolean("hasSubFolders", false)
+
+        val folders = mutableListOf<DriveFolder>()
+        val fArr = json.optJSONArray("folders")
+        if (fArr != null) {
+            for (i in 0 until fArr.length()) {
+                val o = fArr.getJSONObject(i)
+                folders.add(DriveFolder(o.getString("id"), o.getString("name")))
+            }
+        }
+
+        val videos = mutableListOf<DriveVideo>()
+        val vArr = json.optJSONArray("videos")
+        if (vArr != null) {
+            for (i in 0 until vArr.length()) {
+                val o = vArr.getJSONObject(i)
+                val id    = o.getString("id")
+                val title = o.getString("title")
+                val thumb = "https://drive.google.com/thumbnail?id=$id&sz=w1000-h1080"
+                videos.add(DriveVideo(id, title, thumb, 0L))
+            }
+        }
+
+        return FolderContents(folderId, folderName, hasSubs, folders, videos)
     }
 }

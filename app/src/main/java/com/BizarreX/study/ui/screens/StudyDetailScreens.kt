@@ -53,6 +53,9 @@ import com.BizarreX.study.utils.GoogleDriveHelper
 
 // ── Subject Detail Screen ───────────────────────────────────────────────────────
 
+/** Stack entry: either a subject name (root) or a folder ID (nested) */
+private data class FolderNavEntry(val folderId: String?, val displayName: String)
+
 @Composable
 fun SubjectDetailScreen(
     subjectName: String,
@@ -60,84 +63,40 @@ fun SubjectDetailScreen(
     onVideoClick: (String) -> Unit
 ) {
     val context = LocalContext.current
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    var groupedVideos by remember { mutableStateOf<Map<String, List<DriveVideo>>>(emptyMap()) }
-    var allVideosCount by remember { mutableIntStateOf(0) }
-    var activeUnitName by remember { mutableStateOf<String?>(null) }
-    
-    BackHandler(enabled = activeUnitName != null) {
-        activeUnitName = null
-    }
 
-    LaunchedEffect(subjectName) {
-        // 1. SILENT CACHE LOAD (0 seconds wait)
-        val cachedVideos = GoogleDriveHelper.getCachedVideos(context, subjectName)
-        if (cachedVideos != null && cachedVideos.isNotEmpty()) {
-            val unitRegex = Regex("(?i)(?:unit|ch|module)\\s*\\.?\\s*(\\d+)")
-            val map = mutableMapOf<String, MutableList<DriveVideo>>()
-            for (v in cachedVideos) {
-                val match = unitRegex.find(v.title)
-                val unitName = if (match != null) "Unit ${match.groupValues[1]}" else "Other Lectures"
-                if (!map.containsKey(unitName)) map[unitName] = mutableListOf()
-                map[unitName]!!.add(v)
-            }
-            val sortedKeys = map.keys.sortedWith(compareBy { k ->
-                if (k == "Other Lectures") 9999 else k.replace(Regex("[^0-9]"), "").toIntOrNull() ?: 1000
-            })
-            val sortedMap = mutableMapOf<String, List<DriveVideo>>()
-            for (k in sortedKeys) sortedMap[k] = map[k]!!
-            
-            groupedVideos = sortedMap
-            allVideosCount = cachedVideos.size
-            isLoading = false
+    // Navigation stack — root entry has folderId=null (use subjectName API)
+    val navStack = remember { mutableStateListOf(FolderNavEntry(null, subjectName)) }
+    var contents  by remember { mutableStateOf<FolderContents?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var error     by remember { mutableStateOf<String?>(null) }
+
+    val current = navStack.last()
+
+    // Fetch whenever nav changes
+    LaunchedEffect(current) {
+        isLoading = true; error = null; contents = null
+        val result = if (current.folderId == null) {
+            GoogleDriveHelper.fetchSubjectFolders(subjectName)
         } else {
-            isLoading = true
+            GoogleDriveHelper.fetchFolderContents(current.folderId)
         }
-        
-        // 2. BACKGROUND SYNC (Network Check)
-        val networkVideos = GoogleDriveHelper.fetchVideosFromAppsScript(context, subjectName)
-        
-        if (networkVideos != null) {
-            // Save to Disk for next time
-            GoogleDriveHelper.saveVideosToCache(context, subjectName, networkVideos)
-            
-            // Overwrite UI silently with live data
-            if (networkVideos.isNotEmpty()) {
-                val unitRegex = Regex("(?i)(?:unit|ch|module)\\s*\\.?\\s*(\\d+)")
-                val map = mutableMapOf<String, MutableList<DriveVideo>>()
-                for (v in networkVideos) {
-                    val match = unitRegex.find(v.title)
-                    val unitName = if (match != null) "Unit ${match.groupValues[1]}" else "Other Lectures"
-                    if (!map.containsKey(unitName)) map[unitName] = mutableListOf()
-                    map[unitName]!!.add(v)
-                }
-                val sortedKeys = map.keys.sortedWith(compareBy { k ->
-                    if (k == "Other Lectures") 9999 else k.replace(Regex("[^0-9]"), "").toIntOrNull() ?: 1000
-                })
-                val sortedMap = mutableMapOf<String, List<DriveVideo>>()
-                for (k in sortedKeys) sortedMap[k] = map[k]!!
-                
-                groupedVideos = sortedMap
-                allVideosCount = networkVideos.size
-            } else if (cachedVideos.isNullOrEmpty()) {
-                errorMessage = "No lectures available yet."
-            }
-        } else if (cachedVideos.isNullOrEmpty()) {
-            // Only show error if we have NO cache at all
-            val dbg = GoogleDriveHelper.lastError ?: "Unknown Error"
-            errorMessage = "Sync Error. Diagnostics:\n$dbg"
+        if (result == null) {
+            error = if (navStack.size == 1) "No lectures available yet.\n${GoogleDriveHelper.lastError ?: ""}"
+                    else "Could not load folder."
+        } else {
+            contents = result
         }
-        
         isLoading = false
     }
+
+    BackHandler(enabled = navStack.size > 1) { navStack.removeLast() }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Top bar
+        // ── Top bar ──────────────────────────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -145,73 +104,93 @@ fun SubjectDetailScreen(
                 .padding(horizontal = 8.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { if (activeUnitName != null) activeUnitName = null else onBack() }) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color.White
-                )
+            IconButton(onClick = { if (navStack.size > 1) navStack.removeLast() else onBack() }) {
+                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = Color.White)
             }
             Spacer(modifier = Modifier.width(4.dp))
             Column {
                 Text(
-                    text = activeUnitName ?: subjectName,
+                    text = current.displayName,
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = if (isLoading) "Loading modules..." else if (activeUnitName != null) "${groupedVideos[activeUnitName]?.size ?: 0} Lectures" else "$allVideosCount Lectures",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.55f)
-                )
+                val subtitle = when {
+                    isLoading -> "Loading…"
+                    contents?.hasSubFolders == true -> "${contents!!.folders.size} sections"
+                    else -> "${contents?.videos?.size ?: 0} lectures"
+                }
+                Text(text = subtitle, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.55f))
             }
         }
 
-        // Body
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        // ── Breadcrumb (only when deeper than 2 levels) ───────────────────
+        if (navStack.size > 2) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.Black.copy(alpha = 0.8f))
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                navStack.dropLast(1).forEachIndexed { index, entry ->
+                    if (index > 0) Text(" › ", color = Color.White.copy(alpha = 0.4f), fontSize = 12.sp)
+                    Text(
+                        text = entry.displayName,
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontSize = 12.sp,
+                        modifier = Modifier.clickable {
+                            repeat(navStack.size - 1 - index) { navStack.removeLast() }
+                        }
+                    )
+                }
+            }
+        }
+
+        // ── Body ──────────────────────────────────────────────────────────
+        when {
+            isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
-        } else if (errorMessage == "COMING_SOON") {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+
+            error != null -> Box(
+                Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Rounded.PlayCircle, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(text = "Coming Soon!", style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onBackground)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(text = "Lectures for $subjectName are currently being recorded & will be available shortly.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+                Text(text = error!!, color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
             }
-        } else if (errorMessage != null) {
-            Box(modifier = Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
-                Text(text = errorMessage!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyLarge)
-            }
-        } else {
-            AnimatedContent(targetState = activeUnitName, label = "unit_transition") { currentUnit ->
-                if (currentUnit == null) {
+
+            contents != null -> {
+                val c = contents!!
+
+                if (c.hasSubFolders && c.folders.isNotEmpty()) {
+                    // Show folder cards
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = 32.dp)
                     ) {
-                        groupedVideos.forEach { (unitName, videos) ->
-                            item {
-                                UnitCard(unitName = unitName, videos = videos, onClick = { activeUnitName = unitName })
-                            }
+                        items(c.folders) { folder ->
+                            FolderCard(
+                                name   = folder.name,
+                                onClick = { navStack.add(FolderNavEntry(folder.id, folder.name)) }
+                            )
                         }
                     }
                 } else {
-                    val unitVideos = groupedVideos[currentUnit] ?: emptyList()
+                    // Show video list
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp)
                     ) {
-                        itemsIndexed(unitVideos) { index, video ->
+                        itemsIndexed(c.videos) { index, video ->
                             VideoPill(video = video, number = index + 1, onClick = { onVideoClick(video.id) })
                             Spacer(modifier = Modifier.height(10.dp))
+                        }
+                        if (c.videos.isEmpty()) {
+                            item {
+                                Box(Modifier.fillMaxWidth().padding(top = 64.dp), contentAlignment = Alignment.Center) {
+                                    Text("No videos in this folder yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
                         }
                     }
                 }
@@ -221,7 +200,7 @@ fun SubjectDetailScreen(
 }
 
 @Composable
-private fun UnitCard(unitName: String, videos: List<DriveVideo>, onClick: () -> Unit) {
+private fun FolderCard(name: String, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -233,9 +212,7 @@ private fun UnitCard(unitName: String, videos: List<DriveVideo>, onClick: () -> 
         elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 24.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 24.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
@@ -243,33 +220,23 @@ private fun UnitCard(unitName: String, videos: List<DriveVideo>, onClick: () -> 
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = unitName.replace(Regex("[^0-9]"), "").takeIf { it.isNotEmpty() } ?: "#",
+                    text = name.replace(Regex("[^0-9]"), "").takeIf { it.isNotEmpty() } ?: "📂",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             }
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(18.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = unitName,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "${videos.size} Lectures",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text(text = name, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.onSurface)
+                Text(text = "Tap to view lectures", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Spacer(modifier = Modifier.width(8.dp))
-            Icon(
-                imageVector = Icons.Rounded.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
+
+
+
 
 @Composable
 private fun VideoPill(video: DriveVideo, number: Int, onClick: () -> Unit) {
