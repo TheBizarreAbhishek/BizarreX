@@ -111,33 +111,68 @@ fun RootApp(
 
     updateInfo?.let { info ->
         var isDownloading by remember { mutableStateOf(false) }
-        var downloadId by remember { mutableStateOf(-1L) }
+        var downloadId    by remember { mutableStateOf(-1L) }
+        var downloadDone  by remember { mutableStateOf(false) }
 
-        // Listen for download complete
-        if (downloadId != -1L) {
-            DisposableEffect(downloadId) {
-                val receiver = object : BroadcastReceiver() {
-                    override fun onReceive(ctx: android.content.Context, intent: android.content.Intent) {
-                        val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
-                        if (id == downloadId) {
-                            val apkFile = File(ctx.externalCacheDir, "BizarreX-update.apk")
-                            val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", apkFile)
-                            val installIntent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
-                                setDataAndType(uri, "application/vnd.android.package-archive")
-                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        // ── Listen for DownloadManager completion ─────────────────────────
+        DisposableEffect(downloadId) {
+            if (downloadId == -1L) return@DisposableEffect onDispose {}
+
+            val receiver = object : BroadcastReceiver() {
+                override fun onReceive(ctx: android.content.Context, intent: android.content.Intent) {
+                    val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L)
+                    if (id != downloadId) return
+
+                    // Query DownloadManager for the actual file URI (works on all Android versions)
+                    val dm = ctx.getSystemService(android.content.Context.DOWNLOAD_SERVICE) as DownloadManager
+                    val query = DownloadManager.Query().setFilterById(downloadId)
+                    dm.query(query).use { cursor ->
+                        if (cursor.moveToFirst()) {
+                            val statusCol = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
+                            val status = cursor.getInt(statusCol)
+                            if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                                val uriCol = cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI)
+                                val localUri = android.net.Uri.parse(cursor.getString(uriCol))
+
+                                // Convert file:// URI to content:// via FileProvider if needed
+                                val contentUri = if (localUri.scheme == "file") {
+                                    try {
+                                        FileProvider.getUriForFile(
+                                            ctx,
+                                            "${ctx.packageName}.fileprovider",
+                                            File(localUri.path!!)
+                                        )
+                                    } catch (e: Exception) { localUri }
+                                } else localUri
+
+                                val installIntent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                                    setDataAndType(contentUri, "application/vnd.android.package-archive")
+                                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                try { ctx.startActivity(installIntent) } catch (_: Exception) {}
+                                downloadDone = true
+                            } else {
+                                // Download failed — reset so user can retry
+                                isDownloading = false
                             }
-                            ctx.startActivity(installIntent)
                         }
                     }
                 }
-                context.registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
-                onDispose { context.unregisterReceiver(receiver) }
             }
+
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                context.registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), android.content.Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                @Suppress("UnspecifiedRegisterReceiverFlag")
+                context.registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+            }
+            onDispose { try { context.unregisterReceiver(receiver) } catch (_: Exception) {} }
         }
 
+        // ── Update Dialog ────────────────────────────────────────────────
         AlertDialog(
-            onDismissRequest = { /* non-dismissible */ },
+            onDismissRequest = { if (!isDownloading) updateInfo = null },
             title = { Text("Update Available 🚀", fontWeight = FontWeight.Bold) },
             text = {
                 androidx.compose.foundation.layout.Column {
@@ -146,39 +181,56 @@ fun RootApp(
                         androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(4.dp))
                         Text(info.releaseNotes, style = MaterialTheme.typography.bodySmall)
                     }
-                    if (isDownloading) {
+                    if (isDownloading && !downloadDone) {
                         androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(12.dp))
-                        Text("Downloading update...", style = MaterialTheme.typography.bodySmall)
+                        Text("Downloading… check notification bar for progress.", style = MaterialTheme.typography.bodySmall)
                         androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(6.dp))
                         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     }
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        if (!isDownloading) {
-                            isDownloading = true
-                            val dm = context.getSystemService(android.content.Context.DOWNLOAD_SERVICE) as DownloadManager
-                            val apkFile = File(context.externalCacheDir, "BizarreX-update.apk")
-                            if (apkFile.exists()) apkFile.delete()
-                            val req = DownloadManager.Request(android.net.Uri.parse(info.apkDownloadUrl))
-                                .setTitle("BizarreX v${info.latestVersion}")
-                                .setDescription("Downloading update...")
-                                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
-                                .setDestinationUri(android.net.Uri.fromFile(apkFile))
-                                .setAllowedOverMetered(true)
-                            downloadId = dm.enqueue(req)
-                        }
-                    },
-                    enabled = !isDownloading
+                androidx.compose.foundation.layout.Row(
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(if (isDownloading) "Downloading..." else "Update Now")
+                    // "Open in Browser" — always visible, safest fallback
+                    OutlinedButton(
+                        onClick = {
+                            val browserIntent = android.content.Intent(android.content.Intent.ACTION_VIEW,
+                                android.net.Uri.parse(info.apkDownloadUrl))
+                            browserIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            try { context.startActivity(browserIntent) } catch (_: Exception) {}
+                        }
+                    ) { Text("Browser") }
+
+                    // "Download in App" via DownloadManager
+                    Button(
+                        onClick = {
+                            if (!isDownloading) {
+                                isDownloading = true
+                                val dm = context.getSystemService(android.content.Context.DOWNLOAD_SERVICE) as DownloadManager
+                                val req = DownloadManager.Request(android.net.Uri.parse(info.apkDownloadUrl))
+                                    .setTitle("BizarreX v${info.latestVersion}")
+                                    .setDescription("Downloading update…")
+                                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                                    .setDestinationInExternalFilesDir(context, null, "BizarreX-update.apk")
+                                    .setAllowedOverMetered(true)
+                                    .setAllowedOverRoaming(true)
+                                downloadId = dm.enqueue(req)
+                            }
+                        },
+                        enabled = !isDownloading
+                    ) { Text(if (isDownloading) "Downloading…" else "Download") }
                 }
             },
-            dismissButton = null
+            dismissButton = {
+                TextButton(onClick = { updateInfo = null }, enabled = !isDownloading) {
+                    Text("Later")
+                }
+            }
         )
     }
+
 
     when (authState) {
         is AuthState.Loading -> { Box(modifier = Modifier.fillMaxSize()) }
