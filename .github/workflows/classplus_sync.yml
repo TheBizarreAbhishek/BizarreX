@@ -1,16 +1,21 @@
-name: Classplus → Google Drive Sync
+name: Classplus → Google Drive Daily Sync
 
 on:
+  # ── Daily at 11:30 PM IST (6:00 PM UTC) ──────────────────────────────────
+  schedule:
+    - cron: '0 18 * * *'   # Every day at 6:00 PM UTC = 11:30 PM IST
+
+  # ── Manual trigger (for testing / catch-up runs) ─────────────────────────
   workflow_dispatch:
     inputs:
       subject_index:
-        description: 'Subject index (0=all, 1=first, 2=second...)'
+        description: 'Subject index (leave empty = all subjects)'
         required: false
-        default: '0'
+        default: ''
       max_videos:
-        description: 'Max videos per subject (0=all, 1=test with 1)'
+        description: 'Max videos to upload this run (default 35)'
         required: false
-        default: '0'
+        default: '35'
 
 jobs:
   sync:
@@ -26,22 +31,36 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install yt-dlp
+      - name: Install dependencies
         run: |
           pip install yt-dlp
           pip install -r tools/ci/requirements.txt
 
-      - name: Run Sync
+      - name: Run Daily Sync
         env:
-          CLASSPLUS_TOKEN: ${{ secrets.CLASSPLUS_TOKEN }}
+          CLASSPLUS_TOKEN:      ${{ secrets.CLASSPLUS_TOKEN }}
           GDRIVE_REFRESH_TOKEN: ${{ secrets.GDRIVE_REFRESH_TOKEN }}
-          GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
+          GDRIVE_CLIENT_ID:     ${{ secrets.GDRIVE_CLIENT_ID }}
           GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
         run: |
-          IDX="${{ github.event.inputs.subject_index }}"
-          MAX="${{ github.event.inputs.max_videos }}"
+          # Build command
           CMD="python3 tools/ci/sync.py"
-          [ "$IDX" != "0" ] && [ -n "$IDX" ] && CMD="$CMD --subject-index $((IDX - 1))"
-          [ "$MAX" != "0" ] && [ -n "$MAX" ] && CMD="$CMD --max-videos $MAX"
+
+          # Max videos (default 35 for scheduled runs)
+          MAX="${{ github.event.inputs.max_videos }}"
+          if [ -z "$MAX" ]; then MAX="35"; fi
+          CMD="$CMD --max-videos $MAX"
+
+          # Optional: specific subject
+          IDX="${{ github.event.inputs.subject_index }}"
+          if [ -n "$IDX" ]; then CMD="$CMD --subject-index $IDX"; fi
+
           echo "Running: $CMD"
           $CMD
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Daily Sync Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- Run at: $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "- Max videos this run: ${{ github.event.inputs.max_videos || '35' }}" >> $GITHUB_STEP_SUMMARY
