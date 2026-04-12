@@ -82,9 +82,9 @@ def get_or_create_folder(svc, name: str, parent: str) -> str:
     return f["id"]
 
 
-def get_uploaded_filenames(svc, subject_folder_id: str) -> Set[str]:
-    """Recursively get all filenames in subject's Drive folder tree."""
-    q = (f"'{subject_folder_id}' in ancestors "
+def get_uploaded_filenames(svc, folder_id: str, depth: int=0) -> Set[str]:
+    """Get all filenames in the specific Drive folder."""
+    q = (f"'{folder_id}' in parents "
          f"and mimeType!='application/vnd.google-apps.folder' and trashed=false")
     names: Set[str] = set()
     page_token = None
@@ -96,7 +96,8 @@ def get_uploaded_filenames(svc, subject_folder_id: str) -> Set[str]:
         page_token = r.get("nextPageToken")
         if not page_token:
             break
-    print(f"  [DRIVE] {len(names)} files already on Drive (in tree)")
+    indent = "  " * depth
+    print(f"{indent}[DRIVE] {len(names)} files already on Drive in this folder")
     return names
 
 
@@ -187,8 +188,7 @@ def download_video(url: str, out: Path, title: str) -> bool:
 # ── RECURSIVE TREE PROCESSOR ──────────────────────────────────────────────────
 
 def process_folder_tree(svc, classplus_folder_id: str, drive_folder_id: str,
-                         uploaded: Set[str], stats: dict, limit: int,
-                         depth: int = 0):
+                         stats: dict, limit: int, depth: int = 0):
     """
     Recursively mirrors Classplus folder into Drive.
     - sub-folders → create matching Drive folder, recurse
@@ -196,6 +196,9 @@ def process_folder_tree(svc, classplus_folder_id: str, drive_folder_id: str,
     """
     if stats["done"] >= limit:
         return
+
+    # Pre-load uploaded filenames for this directory to skip existing
+    uploaded = get_uploaded_filenames(svc, drive_folder_id, depth)
 
     items = fetch_folder_items(classplus_folder_id)
     video_num = 0  # Per-folder counter for filename prefix
@@ -213,7 +216,7 @@ def process_folder_tree(svc, classplus_folder_id: str, drive_folder_id: str,
             child_drive = get_or_create_folder(svc, name, drive_folder_id)
             time.sleep(0.3)
             process_folder_tree(svc, str(item["id"]), child_drive,
-                                  uploaded, stats, limit, depth + 1)
+                                  stats, limit, depth + 1)
 
         elif ct in (2, "2"):  # Video
             video_num += 1
@@ -298,14 +301,11 @@ def main():
 
         drive_folder = get_or_create_folder(svc, subj_name, DRIVE_ROOT_ID)
 
-        # Pre-load all uploaded filenames (recursive search, no per-video API call)
-        uploaded = get_uploaded_filenames(svc, drive_folder)
-
+        # Process root folder directly
         process_folder_tree(
             svc=svc,
             classplus_folder_id=str(subj["id"]),
             drive_folder_id=drive_folder,
-            uploaded=uploaded,
             stats=stats,
             limit=args.max_videos,
         )
