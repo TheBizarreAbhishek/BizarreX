@@ -64,7 +64,8 @@ object GoogleDriveHelper {
             val request = chain.request()
             val response = chain.proceed(request)
 
-            if (request.url.host == "docs.google.com" && request.url.encodedPath == "/uc") {
+            val hostStr = request.url.host
+            if (hostStr.contains("google.com") || hostStr.contains("googleusercontent.com")) {
                 val contentType = response.body?.contentType()
                 if (contentType?.subtype == "html") {
                     val bodyString = response.peekBody(10 * 1024 * 1024).string()
@@ -72,7 +73,9 @@ object GoogleDriveHelper {
                     val match = regex.find(bodyString)
                     if (match != null) {
                         val token = match.groupValues[1]
-                        val newUrl = request.url.newBuilder().addQueryParameter("confirm", token).build()
+                        // Must append confirm token to the FINAL redirected URL, as the initial docs.google.com strips it
+                        val newUrl = response.request.url.newBuilder().addQueryParameter("confirm", token).build()
+                        
                         val cookies = response.headers("Set-Cookie")
                         val cookieStr = cookies.joinToString("; ") { it.substringBefore(";") }
 
