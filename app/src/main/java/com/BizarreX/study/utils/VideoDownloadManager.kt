@@ -26,10 +26,7 @@ object VideoDownloadManager {
 
     private val activeJobs = mutableMapOf<String, Job>()
 
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(60, TimeUnit.SECONDS)
-        .readTimeout(300, TimeUnit.SECONDS)
-        .build()
+    private val client = GoogleDriveHelper.videoClient
 
     // Sandboxed vault dir — never appears in Gallery, hidden from file managers
     private fun vaultDir(context: Context): File =

@@ -343,7 +343,7 @@ private fun VideoPill(video: DriveVideo, number: Int, onClick: () -> Unit) {
             val downloadStates by VideoDownloadManager.states.collectAsState()
             val dlState = downloadStates[video.id] ?: if (VideoDownloadManager.isDownloaded(context, video.id)) DownloadState.Downloaded else DownloadState.Idle
             val scope = rememberCoroutineScope()
-            val streamUrl = "https://www.googleapis.com/drive/v3/files/${video.id}?alt=media&key=${com.BizarreX.study.utils.GoogleDriveHelper.API_KEY}&acknowledgeAbuse=true"
+            val streamUrl = "https://docs.google.com/uc?export=download&id=${video.id}"
 
             Box(modifier = Modifier.size(40.dp), contentAlignment = Alignment.Center) {
                 when (dlState) {
@@ -386,7 +386,7 @@ fun VideoPlayerScreen(videoId: String, onBack: () -> Unit, onFullscreenToggled: 
     val context = LocalContext.current
     var isFullScreen by remember { mutableStateOf(false) }
 
-    val streamUrl = "https://www.googleapis.com/drive/v3/files/$videoId?alt=media&key=${GoogleDriveHelper.API_KEY}&acknowledgeAbuse=true"
+    val streamUrl = "https://docs.google.com/uc?export=download&id=$videoId"
     
     // 🔒 Vault-first: use local file if exists, else stream
     val localFile = VideoDownloadManager.getLocalFile(context, videoId)
@@ -397,7 +397,13 @@ fun VideoPlayerScreen(videoId: String, onBack: () -> Unit, onFullscreenToggled: 
     }
 
     val exoPlayer = remember {
-        ExoPlayer.Builder(context).build().apply {
+        val dataSourceFactory = androidx.media3.datasource.okhttp.OkHttpDataSource.Factory(GoogleDriveHelper.videoClient)
+        val mediaSourceFactory = androidx.media3.exoplayer.source.DefaultMediaSourceFactory(context)
+            .setDataSourceFactory(dataSourceFactory)
+            
+        ExoPlayer.Builder(context)
+            .setMediaSourceFactory(mediaSourceFactory)
+            .build().apply {
             val mediaItem = MediaItem.fromUri(mediaUri)
             setMediaItem(mediaItem)
             

@@ -58,6 +58,42 @@ object GoogleDriveHelper {
         .readTimeout(30, TimeUnit.SECONDS)
         .build()
 
+    // Interceptor to bypass Google Drive's "File too large to scan for viruses" prompt silently
+    class DriveVirusScanInterceptor : okhttp3.Interceptor {
+        override fun intercept(chain: okhttp3.Interceptor.Chain): okhttp3.Response {
+            val request = chain.request()
+            val response = chain.proceed(request)
+
+            if (request.url.host == "docs.google.com" && request.url.encodedPath == "/uc") {
+                val contentType = response.body?.contentType()
+                if (contentType?.subtype == "html") {
+                    val bodyString = response.peekBody(10 * 1024 * 1024).string()
+                    val regex = Regex("""confirm=([a-zA-Z0-9_-]+)""")
+                    val match = regex.find(bodyString)
+                    if (match != null) {
+                        val token = match.groupValues[1]
+                        val newUrl = request.url.newBuilder().addQueryParameter("confirm", token).build()
+                        val cookies = response.headers("Set-Cookie")
+                        val cookieStr = cookies.joinToString("; ") { it.substringBefore(";") }
+
+                        val newRequest = request.newBuilder()
+                            .url(newUrl)
+                            .header("Cookie", cookieStr)
+                            .build()
+
+                        response.close() // Discard HTML Warning
+                        return chain.proceed(newRequest) // Return Actual Video Stream
+                    }
+                }
+            }
+            return response
+        }
+    }
+
+    val videoClient = client.newBuilder()
+        .addInterceptor(DriveVirusScanInterceptor())
+        .build()
+
     var lastError: String? = null
     
     fun getCachedVideos(context: android.content.Context, subjectName: String): List<DriveVideo>? {
