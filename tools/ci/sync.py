@@ -74,6 +74,21 @@ def get_or_create_folder(svc, name: str, parent: str) -> str:
         fid = res["files"][0]["id"]
         print(f"  [FOLDER] Using: {name} ({fid})")
         return fid
+    
+    # Fallback to fuzzy search due to unpredictable Classplus Name Typos (e.g., '2.0' vs '2.O')
+    q_all = f"'{parent}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
+    res_all = svc.files().list(q=q_all, fields="files(id,name)").execute()
+    
+    def normalize(text):
+         import re
+         return re.sub(r'[\s.\-]', '', text.lower()).replace('o', '0')
+    
+    norm_name = normalize(name)
+    for f in res_all.get("files", []):
+         if normalize(f["name"]) == norm_name:
+             print(f"  [FOLDER] Fuzzy Matched: {name} to {f['name']} ({f['id']})")
+             return f["id"]
+
     f = svc.files().create(
         body={"name": name, "mimeType": "application/vnd.google-apps.folder", "parents": [parent]},
         fields="id"
