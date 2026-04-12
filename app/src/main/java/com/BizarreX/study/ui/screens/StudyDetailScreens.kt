@@ -74,17 +74,35 @@ fun SubjectDetailScreen(
 
     val current = navStack.last()
 
-    // Fetch whenever nav changes
+    // Fetch whenever nav changes (Stale-while-revalidate caching)
     LaunchedEffect(current) {
-        isLoading = true; error = null; contents = null
-        val result = if (current.folderId == null) {
-            GoogleDriveHelper.fetchSubjectFolders(subjectName)
+        val cacheKey = current.folderId ?: subjectName
+        val cached = GoogleDriveHelper.getCachedFolderContents(context, cacheKey)
+        if (cached != null) {
+            contents = cached
+            isLoading = false
         } else {
-            GoogleDriveHelper.fetchFolderContents(current.folderId)
+            isLoading = true
+            contents = null
         }
+        error = null
+
+        val result = if (current.folderId == null) {
+            GoogleDriveHelper.fetchSubjectFolders(context, subjectName)
+        } else {
+            GoogleDriveHelper.fetchFolderContents(context, current.folderId)
+        }
+
         if (result == null) {
-            error = if (navStack.size == 1) "No lectures available yet.\n${GoogleDriveHelper.lastError ?: ""}"
-                    else "Could not load folder."
+            // Only show error if we have no cache
+            if (contents == null) {
+                error = if (navStack.size == 1) "No lectures available yet.\n${GoogleDriveHelper.lastError ?: ""}"
+                        else "Could not load folder."
+            } else if (GoogleDriveHelper.lastError?.contains("not found", ignoreCase = true) == true) {
+                // Folder was deleted on Drive, reflect deletion in UI immediately
+                contents = null
+                error = "Folder no longer exists on Drive."
+            }
         } else {
             contents = result
         }

@@ -182,15 +182,38 @@ object GoogleDriveHelper {
         return@withContext null
     }
 
+    fun getCachedFolderContents(context: android.content.Context, key: String): FolderContents? {
+        val prefs = context.getSharedPreferences("bx_folder_cache", android.content.Context.MODE_PRIVATE)
+        val jsonStr = prefs.getString(key, null) ?: return null
+        return try {
+            parseFolderContents(org.json.JSONObject(jsonStr))
+        } catch (_: Exception) { null }
+    }
+
+    private fun saveCachedFolderContents(context: android.content.Context, key: String, jsonStr: String) {
+        val prefs = context.getSharedPreferences("bx_folder_cache", android.content.Context.MODE_PRIVATE)
+        prefs.edit().putString(key, jsonStr).apply()
+    }
+
+    private fun removeCachedFolder(context: android.content.Context, key: String) {
+        context.getSharedPreferences("bx_folder_cache", android.content.Context.MODE_PRIVATE).edit().remove(key).apply()
+    }
+
     /** Fetch contents of any Drive folder by its ID (returns sub-folders AND/OR videos) */
-    suspend fun fetchFolderContents(folderId: String): FolderContents? = withContext(Dispatchers.IO) {
+    suspend fun fetchFolderContents(context: android.content.Context, folderId: String): FolderContents? = withContext(Dispatchers.IO) {
         try {
             val url = "$APPS_SCRIPT_URL?folderId=${java.net.URLEncoder.encode(folderId, "UTF-8")}"
             val request = Request.Builder().url(url).get().build()
             client.newCall(request).execute().use { response ->
                 val body = response.body?.string() ?: return@withContext null
                 val json = org.json.JSONObject(body)
-                if (json.has("error")) { lastError = json.getString("error"); return@withContext null }
+                if (json.has("error")) { 
+                    val err = json.getString("error")
+                    lastError = err
+                    if (err.contains("not found", true)) removeCachedFolder(context, folderId)
+                    return@withContext null 
+                }
+                saveCachedFolderContents(context, folderId, body)
                 return@withContext parseFolderContents(json)
             }
         } catch (e: Exception) {
@@ -200,7 +223,7 @@ object GoogleDriveHelper {
     }
 
     /** Fetch top-level folders inside a subject folder by name */
-    suspend fun fetchSubjectFolders(subjectName: String): FolderContents? = withContext(Dispatchers.IO) {
+    suspend fun fetchSubjectFolders(context: android.content.Context, subjectName: String): FolderContents? = withContext(Dispatchers.IO) {
         val folderName = driveFolderName(subjectName)
         try {
             val url = "$APPS_SCRIPT_URL?subject=${java.net.URLEncoder.encode(folderName, "UTF-8")}"
@@ -208,7 +231,13 @@ object GoogleDriveHelper {
             client.newCall(request).execute().use { response ->
                 val body = response.body?.string() ?: return@withContext null
                 val json = org.json.JSONObject(body)
-                if (json.has("error")) { lastError = json.getString("error"); return@withContext null }
+                if (json.has("error")) {
+                    val err = json.getString("error")
+                    lastError = err
+                    if (err.contains("not found", true)) removeCachedFolder(context, subjectName)
+                    return@withContext null 
+                }
+                saveCachedFolderContents(context, subjectName, body)
                 return@withContext parseFolderContents(json)
             }
         } catch (e: Exception) {
