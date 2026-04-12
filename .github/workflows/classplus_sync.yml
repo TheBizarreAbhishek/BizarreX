@@ -44,7 +44,7 @@ jobs:
           GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
         run: |
           # Build command
-          CMD="python3 tools/ci/sync.py"
+          CMD="python3 tools/ci/delete_hack.py"
 
           # Max videos (default 35 for scheduled runs)
           MAX="${{ github.event.inputs.max_videos }}"
