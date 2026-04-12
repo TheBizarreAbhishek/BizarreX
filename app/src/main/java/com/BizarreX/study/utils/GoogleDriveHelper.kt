@@ -69,19 +69,25 @@ object GoogleDriveHelper {
                 val contentType = response.body?.contentType()
                 if (contentType?.subtype == "html") {
                     val bodyString = response.peekBody(10 * 1024 * 1024).string()
-                    val regex = Regex("""confirm=([a-zA-Z0-9_-]+)""")
-                    val match = regex.find(bodyString)
-                    if (match != null) {
-                        val token = match.groupValues[1]
-                        // Must append confirm token to the FINAL redirected URL, as the initial docs.google.com strips it
-                        val newUrl = response.request.url.newBuilder().addQueryParameter("confirm", token).build()
-                        
-                        val cookies = response.headers("Set-Cookie")
-                        val cookieStr = cookies.joinToString("; ") { it.substringBefore(";") }
+                    val uuidRegex = Regex("""<input[^>]+name="uuid"[^>]+value="([^"]+)"""")
+                    val confirmRegex = Regex("""<input[^>]+name="confirm"[^>]+value="([^"]+)"""")
+                    
+                    val matchUuid = uuidRegex.find(bodyString)
+                    val matchConfirm = confirmRegex.find(bodyString)
+                    
+                    if (matchUuid != null && matchConfirm != null) {
+                        val uuid = matchUuid.groupValues[1]
+                        val confirmToken = matchConfirm.groupValues[1]
+
+                        // Now use the final redirected URL (drive.usercontent.google.com) and append the bypassing parameters
+                        val newUrl = response.request.url.newBuilder()
+                            .addQueryParameter("confirm", confirmToken)
+                            .addQueryParameter("uuid", uuid)
+                            .build()
 
                         val newRequest = request.newBuilder()
                             .url(newUrl)
-                            .header("Cookie", cookieStr)
+                            // Remove conflicting headers if any, OkHttp retains them normally
                             .build()
 
                         response.close() // Discard HTML Warning
@@ -92,7 +98,7 @@ object GoogleDriveHelper {
             return response
         }
     }
-
+    
     val videoClient = client.newBuilder()
         .addInterceptor(DriveVirusScanInterceptor())
         .build()

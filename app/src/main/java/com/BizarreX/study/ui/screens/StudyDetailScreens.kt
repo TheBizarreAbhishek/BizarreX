@@ -395,7 +395,6 @@ fun VideoPlayerScreen(videoId: String, onBack: () -> Unit, onFullscreenToggled: 
     } else {
         android.net.Uri.parse(streamUrl)
     }
-
     val exoPlayer = remember {
         val dataSourceFactory = androidx.media3.datasource.okhttp.OkHttpDataSource.Factory(GoogleDriveHelper.videoClient)
         val mediaSourceFactory = androidx.media3.exoplayer.source.DefaultMediaSourceFactory(context)
@@ -406,6 +405,14 @@ fun VideoPlayerScreen(videoId: String, onBack: () -> Unit, onFullscreenToggled: 
             .build().apply {
             val mediaItem = MediaItem.fromUri(mediaUri)
             setMediaItem(mediaItem)
+            
+            addListener(object : androidx.media3.common.Player.Listener {
+                override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                    val msg = "ExoPlayer Error: ${error.errorCodeName} - ${error.cause?.message}"
+                    android.util.Log.e("BizarreX", msg, error)
+                    android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
+                }
+            })
             
             // Auto-Resume YouTube style
             val (savedPos, _) = GoogleDriveHelper.getWatchProgress(context, videoId)
