@@ -242,6 +242,7 @@ fun CommunityChatContent(currentUser: FirebaseUser, onBack: () -> Unit) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val selectedMessageIds = remember { mutableStateListOf<String>() }
 
     // Auto-scroll to bottom on new messages
     LaunchedEffect(messages.size, localUploads.size) {
@@ -416,56 +417,110 @@ fun CommunityChatContent(currentUser: FirebaseUser, onBack: () -> Unit) {
             .background(MaterialTheme.colorScheme.background)
             .imePadding()
     ) {
-        // ── Top Bar ──────────────────────────────────────────────────────────
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.Black)
-                .padding(start = 8.dp, end = 20.dp, top = 12.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color.White
-                )
-            }
-            Spacer(modifier = Modifier.width(4.dp))
-            Box(
+        // ── Top Bar / Action Bar ──────────────────────────────────────────────────────────
+        if (selectedMessageIds.isNotEmpty()) {
+            Row(
                 modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .padding(start = 8.dp, end = 20.dp, top = 12.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.Groups,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
+                IconButton(onClick = { selectedMessageIds.clear() }) {
+                    Icon(Icons.Default.Close, contentDescription = "Cancel", tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                }
+                Spacer(modifier = Modifier.width(16.dp))
                 Text(
-                    text = "BizarreX Community",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White
+                    text = "${selectedMessageIds.size}",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(7.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF4CAF50))
+                Spacer(modifier = Modifier.weight(1f))
+                
+                Icon(
+                    Icons.Default.ContentCopy, 
+                    contentDescription = "Copy", 
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(24.dp).clickable {
+                        val texts = selectedMessageIds.mapNotNull { id -> messages.find { it.id == id }?.text }.filter { it.isNotBlank() }
+                        val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+                        clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(texts.joinToString("\n")))
+                        selectedMessageIds.clear()
+                    }
+                )
+                
+                Spacer(modifier = Modifier.width(20.dp))
+
+                val canDeleteAll = selectedMessageIds.all { id -> 
+                    val msg = messages.find { it.id == id }
+                    msg != null && msg.senderId == currentUser.uid
+                }
+                if (canDeleteAll) {
+                    Icon(
+                        Icons.Default.Delete, 
+                        contentDescription = "Delete Selected", 
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(24.dp).clickable {
+                            val toDelete = selectedMessageIds.toList()
+                            selectedMessageIds.clear()
+                            toDelete.forEach { id ->
+                                db.collection("community_chat").document(id).delete()
+                            }
+                        }
                     )
-                    Spacer(modifier = Modifier.width(5.dp))
+                }
+            }
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.Black)
+                    .padding(start = 8.dp, end = 20.dp, top = 12.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Groups,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
                     Text(
-                        text = "Live group chat",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.55f)
+                        text = "BizarreX Community",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White
                     )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF4CAF50))
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = "Live group chat",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White.copy(alpha = 0.55f)
+                        )
+                    }
                 }
             }
         }
@@ -502,9 +557,16 @@ fun CommunityChatContent(currentUser: FirebaseUser, onBack: () -> Unit) {
                 contentPadding = PaddingValues(vertical = 14.dp)
             ) {
                 items(messages, key = { it.id }) { msg ->
+                    val isSelected = selectedMessageIds.contains(msg.id)
                     MessageBubble(
                         msg = msg,
                         isMe = msg.senderId == currentUser.uid,
+                        isSelected = isSelected,
+                        selectionMode = selectedMessageIds.isNotEmpty(),
+                        onToggleSelect = {
+                            if (isSelected) selectedMessageIds.remove(msg.id)
+                            else selectedMessageIds.add(msg.id)
+                        },
                         onReply = { replyToMessage = msg },
                         onEdit = {
                             editingMessage = msg
@@ -808,7 +870,7 @@ private fun MessageBubble(
         }
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background),
+            modifier = Modifier.fillMaxWidth().background(if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.background),
             horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start,
             verticalAlignment = Alignment.Bottom
         ) {
@@ -881,10 +943,16 @@ private fun MessageBubble(
                             if (isMe) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.surfaceVariant
                         )
-                        .pointerInput(Unit) {
+                        .pointerInput(selectionMode) {
                             detectTapGestures(
-                                onTap = { showMenu = true },
-                                onDoubleTap = { onReact("👍") }
+                                onTap = { 
+                                    if (selectionMode) onToggleSelect() 
+                                },
+                                onLongPress = { 
+                                    if (selectionMode) onToggleSelect() 
+                                    else showMenu = true 
+                                },
+                                onDoubleTap = { if (!selectionMode) onReact("👍") }
                             )
                         }
                 ) {
@@ -1123,6 +1191,10 @@ private fun MessageBubble(
                                                 TgMenuItem("Reply", Icons.Default.Reply) {
                                                     showMenu = false
                                                     onReply()
+                                                }
+                                                TgMenuItem("Select", Icons.Default.CheckCircle) {
+                                                    showMenu = false
+                                                    onToggleSelect()
                                                 }
                                                 if (isMe) {
                                                     TgMenuItem("Edit", Icons.Default.Edit) {
