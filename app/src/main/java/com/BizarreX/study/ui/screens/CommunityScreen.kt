@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Attachment
@@ -242,6 +243,7 @@ fun CommunityChatContent(currentUser: FirebaseUser, onBack: () -> Unit) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
     val selectedMessageIds = remember { mutableStateListOf<String>() }
 
     // Auto-scroll to bottom on new messages
@@ -443,7 +445,6 @@ fun CommunityChatContent(currentUser: FirebaseUser, onBack: () -> Unit) {
                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.size(24.dp).clickable {
                         val texts = selectedMessageIds.mapNotNull { id -> messages.find { it.id == id }?.text }.filter { it.isNotBlank() }
-                        val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
                         clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(texts.joinToString("\n")))
                         selectedMessageIds.clear()
                     }
@@ -831,6 +832,9 @@ private fun TgMenuItem(title: String, icon: ImageVector, onClick: () -> Unit) {
 private fun MessageBubble(
     msg: FirestoreMessage, 
     isMe: Boolean, 
+    isSelected: Boolean,
+    selectionMode: Boolean,
+    onToggleSelect: () -> Unit,
     onReply: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -1192,7 +1196,7 @@ private fun MessageBubble(
                                                     showMenu = false
                                                     onReply()
                                                 }
-                                                TgMenuItem("Select", Icons.Default.CheckCircle) {
+                                                TgMenuItem("Select", Icons.Default.Done) {
                                                     showMenu = false
                                                     onToggleSelect()
                                                 }
