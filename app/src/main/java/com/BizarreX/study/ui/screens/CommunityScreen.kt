@@ -242,6 +242,14 @@ fun CommunityChatContent(currentUser: FirebaseUser, onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
+    // Auto-scroll to bottom on new messages
+    LaunchedEffect(messages.size, localUploads.size) {
+        val total = messages.size + localUploads.size
+        if (total > 0) {
+            listState.animateScrollToItem(total - 1)
+        }
+    }
+
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(),
         onResult = { uris: List<Uri> ->
@@ -931,6 +939,7 @@ private fun MessageBubble(
                                         Box(
                                             contentAlignment = Alignment.Center, 
                                             modifier = Modifier
+                                                .padding(top = 4.dp, bottom = 4.dp)
                                                 .fillMaxWidth()
                                                 .wrapContentHeight()
                                                 .heightIn(max = 400.dp)
