@@ -866,10 +866,12 @@ private fun MessageBubble(
                                 onDoubleTap = { onReact("👍") }
                             )
                         }
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
                 ) {
                     Column {
-                        if (msg.mediaFileId != null) {
+                        val hasMedia = msg.mediaFileId != null
+                        val isImageVideo = hasMedia && (msg.mediaType == "image" || msg.mediaType == "video")
+                        
+                        if (hasMedia) {
                             var resolvedMediaUrl by remember { mutableStateOf<String?>(null) }
                             var resolvedThumbUrl by remember { mutableStateOf<String?>(null) }
                             var showFullScreenMedia by remember { mutableStateOf(false) }
@@ -923,15 +925,22 @@ private fun MessageBubble(
                             }
 
                             if (resolvedMediaUrl != null || resolvedThumbUrl != null) {
-                                if (msg.mediaType == "image" || msg.mediaType == "video") {
+                                if (isImageVideo) {
                                     val urlToDisplay = resolvedThumbUrl ?: resolvedMediaUrl 
                                     if (urlToDisplay != null) {
-                                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp).clip(RoundedCornerShape(8.dp)).clickable { showFullScreenMedia = true }) {
+                                        Box(
+                                            contentAlignment = Alignment.Center, 
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .wrapContentHeight()
+                                                .heightIn(max = 400.dp)
+                                                .clickable { showFullScreenMedia = true }
+                                        ) {
                                             AsyncImage(
                                                 model = urlToDisplay,
                                                 contentDescription = "Shared Image",
-                                                modifier = Modifier.fillMaxWidth(),
-                                                contentScale = ContentScale.Crop
+                                                modifier = Modifier.fillMaxWidth().wrapContentHeight(),
+                                                contentScale = ContentScale.FillWidth
                                             )
                                             if (msg.mediaType == "video") {
                                                 Box(modifier = Modifier.size(48.dp).clip(CircleShape).background(androidx.compose.ui.graphics.Color.Black.copy(alpha=0.4f)), contentAlignment = Alignment.Center) {
@@ -941,50 +950,72 @@ private fun MessageBubble(
                                         }
                                     }
                                 } else {
-                                    Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Row(modifier = Modifier
+                                        .padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 0.dp)
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                         Icon(Icons.Default.InsertDriveFile, contentDescription = "Document", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(36.dp))
                                         Spacer(modifier = Modifier.width(12.dp))
                                         Text("Document Attached", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
+                                    Spacer(modifier = Modifier.height(4.dp))
                                 }
-                                Spacer(modifier = Modifier.height(4.dp))
                             } else {
-                                Box(modifier = Modifier.fillMaxWidth().height(200.dp).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha=0.5f)).clip(RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
+                                Box(modifier = Modifier
+                                    .padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 0.dp)
+                                    .fillMaxWidth()
+                                    .height(200.dp)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha=0.5f))
+                                    .clip(RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
                                     CircularProgressIndicator(strokeWidth = 2.dp)
                                 }
                                 Spacer(modifier = Modifier.height(4.dp))
                             }
                         }
 
-                        if (msg.text.isNotEmpty()) {
-                            Text(
-                                text = msg.text,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (isMe) MaterialTheme.colorScheme.onPrimary
-                                else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        if (msg.reactions.isNotEmpty()) {
-                            val groupedReactions = msg.reactions.values.groupingBy { it }.eachCount()
-                            Row(
-                                modifier = Modifier
-                                    .padding(top = 6.dp)
-                                    .horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        val hasTextOrReactions = msg.text.isNotEmpty() || msg.reactions.isNotEmpty()
+                        if (hasTextOrReactions) {
+                            Column(
+                                modifier = Modifier.padding(
+                                    start = 14.dp,
+                                    end = 14.dp,
+                                    top = if (isImageVideo) 8.dp else (if (hasMedia && !isImageVideo) 0.dp else 10.dp),
+                                    bottom = 10.dp
+                                )
                             ) {
-                                groupedReactions.toList().sortedByDescending { it.second }.forEach { (emoji, count) ->
-                                    Surface(
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = if (isMe) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
-                                        modifier = Modifier.clickable { onReact(emoji) }
+                                if (msg.text.isNotEmpty()) {
+                                    Text(
+                                        text = msg.text,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = if (isMe) MaterialTheme.colorScheme.onPrimary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                if (msg.reactions.isNotEmpty()) {
+                                    val groupedReactions = msg.reactions.values.groupingBy { it }.eachCount()
+                                    Row(
+                                        modifier = Modifier
+                                            .padding(top = 6.dp)
+                                            .horizontalScroll(rememberScrollState()),
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
-                                        Text(
-                                            text = "$emoji $count",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = if (isMe) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                        )
+                                        groupedReactions.toList().sortedByDescending { it.second }.forEach { (emoji, count) ->
+                                            Surface(
+                                                shape = RoundedCornerShape(12.dp),
+                                                color = if (isMe) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
+                                                modifier = Modifier.clickable { onReact(emoji) }
+                                            ) {
+                                                Text(
+                                                    text = "$emoji $count",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = if (isMe) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
