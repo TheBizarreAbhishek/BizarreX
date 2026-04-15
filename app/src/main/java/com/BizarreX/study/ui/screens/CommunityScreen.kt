@@ -85,6 +85,7 @@ data class FirestoreMessage(
     val id: String = "",
     val senderId: String = "",
     val senderName: String = "",
+    val senderPhotoUrl: String? = null,
     val text: String = "",
     val replyToName: String? = null,
     val replyToText: String? = null,
@@ -332,6 +333,7 @@ fun CommunityChatContent(currentUser: FirebaseUser, onBack: () -> Unit) {
                 val payload = mutableMapOf<String, Any>(
                     "senderId" to currentUser.uid,
                     "senderName" to (currentUser.displayName ?: "Student"),
+                    "senderPhotoUrl" to (currentUser.photoUrl?.toString() ?: ""),
                     "text" to text,
                     "timestamp" to com.google.firebase.firestore.FieldValue.serverTimestamp(),
                     "isEdited" to false,
@@ -386,6 +388,7 @@ fun CommunityChatContent(currentUser: FirebaseUser, onBack: () -> Unit) {
                             val payload = mutableMapOf<String, Any>(
                                 "senderId" to currentUser.uid,
                                 "senderName" to (currentUser.displayName ?: "Student"),
+                                "senderPhotoUrl" to (currentUser.photoUrl?.toString() ?: ""),
                                 "text" to textToSend,
                                 "timestamp" to com.google.firebase.firestore.FieldValue.serverTimestamp(),
                                 "isEdited" to false,
@@ -817,11 +820,21 @@ private fun MessageBubble(
                         .background(MaterialTheme.colorScheme.secondaryContainer),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = msg.senderInitial.toString(),
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
+                    val photoUrl = msg.senderPhotoUrl
+                    if (!photoUrl.isNullOrEmpty()) {
+                        coil.compose.AsyncImage(
+                            model = photoUrl,
+                            contentDescription = "Profile",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    } else {
+                        Text(
+                            text = msg.senderInitial.toString(),
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.width(8.dp))
             }
