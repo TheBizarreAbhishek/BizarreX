@@ -19,7 +19,15 @@ import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.PlayCircle
-import androidx.compose.material3.*
+import androidx.compose.material3.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardDefaults
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import androidx.compose.runtime.*
 import kotlinx.coroutines.launch
 import com.BizarreX.study.utils.DownloadState
@@ -114,7 +122,7 @@ fun SubjectDetailScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(MiuixTheme.colorScheme.background)
     ) {
         // ── Top bar ──────────────────────────────────────────────────────────
         Row(
@@ -131,7 +139,7 @@ fun SubjectDetailScreen(
             Column {
                 Text(
                     text = current.displayName,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    style = MiuixTheme.textStyles.title4.copy(fontWeight = FontWeight.Bold),
                     color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
                 val subtitle = when {
@@ -139,7 +147,7 @@ fun SubjectDetailScreen(
                     contents?.hasSubFolders == true -> "${contents!!.folders.size} sections"
                     else -> "${contents?.videos?.size ?: 0} lectures"
                 }
-                Text(text = subtitle, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.55f))
+                Text(text = subtitle, style = MiuixTheme.textStyles.footnote2, color = Color.White.copy(alpha = 0.55f))
             }
         }
 
@@ -175,8 +183,8 @@ fun SubjectDetailScreen(
             error != null -> Box(
                 Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center
             ) {
-                Text(text = error!!, color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
+                Text(text = error!!, color = MiuixTheme.colorScheme.error,
+                    style = MiuixTheme.textStyles.body1, textAlign = TextAlign.Center)
             }
 
             contents != null -> {
@@ -208,7 +216,7 @@ fun SubjectDetailScreen(
                         if (c.videos.isEmpty()) {
                             item {
                                 Box(Modifier.fillMaxWidth().padding(top = 64.dp), contentAlignment = Alignment.Center) {
-                                    Text("No videos in this folder yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("No videos in this folder yet.", color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                                 }
                             }
                         }
@@ -225,32 +233,30 @@ private fun FolderCard(name: String, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 8.dp)
-            .defaultMinSize(minHeight = 80.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-        elevation = CardDefaults.cardElevation(0.dp)
+            .defaultMinSize(minHeight = 80.dp),
+        onClick = onClick,
+        pressFeedbackType = PressFeedbackType.Sink
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 24.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
-                modifier = Modifier.size(46.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.primary),
+                modifier = Modifier.size(46.dp).clip(RoundedCornerShape(12.dp)).background(MiuixTheme.colorScheme.primary),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = name.replace(Regex("[^0-9]"), "").takeIf { it.isNotEmpty() } ?: "📂",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
-                    color = MaterialTheme.colorScheme.onPrimary
+                    style = MiuixTheme.textStyles.title2.copy(fontWeight = FontWeight.ExtraBold),
+                    color = MiuixTheme.colorScheme.onPrimary
                 )
             }
             Spacer(modifier = Modifier.width(18.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = name, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.onSurface)
-                Text(text = "Tap to view lectures", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(text = name, style = MiuixTheme.textStyles.title4.copy(fontWeight = FontWeight.SemiBold), color = MiuixTheme.colorScheme.onSurface)
+                Text(text = "Tap to view lectures", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
             }
-            Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = MiuixTheme.colorScheme.onSurfaceVariantActions)
         }
     }
 }
@@ -280,16 +286,13 @@ private fun VideoPill(video: DriveVideo, number: Int, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = 86.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-        elevation = CardDefaults.cardElevation(0.dp)
+            .defaultMinSize(minHeight = 86.dp),
+        onClick = onClick,
+        pressFeedbackType = PressFeedbackType.Sink
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
+                .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(modifier = Modifier.width(100.dp).height(60.dp).clip(RoundedCornerShape(10.dp))) {
@@ -326,14 +329,14 @@ private fun VideoPill(video: DriveVideo, number: Int, onClick: () -> Unit) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Lecture $number",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
-                    color = MaterialTheme.colorScheme.primary
+                    style = MiuixTheme.textStyles.footnote2.copy(fontWeight = FontWeight.ExtraBold),
+                    color = MiuixTheme.colorScheme.primary
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = video.title,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    style = MiuixTheme.textStyles.title4.copy(fontWeight = FontWeight.Bold),
+                    color = MiuixTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -351,27 +354,27 @@ private fun VideoPill(video: DriveVideo, number: Int, onClick: () -> Unit) {
                         VideoDownloadManager.download(context, video.id, streamUrl, scope)
                     }) {
                         Icon(Icons.Rounded.Download, contentDescription = "Download",
-                            tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                            tint = MiuixTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
                     }
                     is DownloadState.Downloading -> {
                         CircularProgressIndicator(
                             progress = { dlState.progress },
                             modifier = Modifier.size(28.dp),
                             strokeWidth = 2.5.dp,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MiuixTheme.colorScheme.primary
                         )
                     }
                     is DownloadState.Downloaded -> IconButton(onClick = {
                         VideoDownloadManager.delete(context, video.id)
                     }) {
                         Icon(Icons.Rounded.Delete, contentDescription = "Delete offline",
-                            tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(22.dp))
+                            tint = MiuixTheme.colorScheme.error, modifier = Modifier.size(22.dp))
                     }
                     is DownloadState.Failed -> IconButton(onClick = {
                         VideoDownloadManager.download(context, video.id, streamUrl, scope)
                     }) {
                         Icon(Icons.Rounded.Download, contentDescription = "Retry",
-                            tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(22.dp))
+                            tint = MiuixTheme.colorScheme.error, modifier = Modifier.size(22.dp))
                     }
                 }
             }

@@ -55,6 +55,14 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Reply
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material3.*
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardDefaults
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -165,17 +173,18 @@ fun CommunityHomeContent(onOpenChat: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(MiuixTheme.colorScheme.background)
             .padding(start = 24.dp, end = 24.dp, top = 32.dp, bottom = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
         Card(
             onClick = onOpenChat,
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
+            cornerRadius = 24.dp,
+            colors = CardDefaults.defaultColors(
+                color = MiuixTheme.colorScheme.primaryContainer,
             ),
+            pressFeedbackType = PressFeedbackType.Sink,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(100.dp)
@@ -190,13 +199,13 @@ fun CommunityHomeContent(onOpenChat: () -> Unit) {
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f)),
+                        .background(MiuixTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Groups,
                         contentDescription = "Community Chat",
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        tint = MiuixTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(28.dp)
                     )
                 }
@@ -204,13 +213,13 @@ fun CommunityHomeContent(onOpenChat: () -> Unit) {
                 Column {
                     Text(
                         text = "Community Chat",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        style = MiuixTheme.textStyles.title2.copy(fontWeight = FontWeight.Bold),
+                        color = MiuixTheme.colorScheme.onPrimaryContainer
                     )
                     Text(
                         text = "Join the live conversation",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     )
                 }
             }
@@ -732,25 +741,15 @@ fun CommunityChatContent(currentUser: FirebaseUser, onBack: () -> Unit) {
                     ) {
                         Icon(Icons.Default.Add, contentDescription = "Attach Media", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    OutlinedTextField(
+                    TextField(
                         value = inputText,
                         onValueChange = { inputText = it },
-                        placeholder = {
-                            Text(
-                                "Message...",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                            )
-                        },
+                        label = "Message...",
+                        useLabelAsPlaceholder = true,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(24.dp),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                        keyboardActions = KeyboardActions(onSend = { sendMessage() }),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                            focusedBorderColor = MaterialTheme.colorScheme.primary
-                        )
+                        keyboardActions = KeyboardActions(onSend = { sendMessage() })
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     

@@ -20,10 +20,22 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import kotlinx.coroutines.launch
+import androidx.compose.material3.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardDefaults
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.overlay.OverlayDialog
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -153,7 +165,7 @@ private fun StudyHomeScreen(onSemClick: (Int) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(MiuixTheme.colorScheme.background)
     ) {
         // Top App Bar — Black
         Row(
@@ -166,23 +178,24 @@ private fun StudyHomeScreen(onSemClick: (Int) -> Unit) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "BizarreX",
-                    style = MaterialTheme.typography.titleLarge.copy(
+                    style = MiuixTheme.textStyles.title2.copy(
                         fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = (-0.5).sp
-                    ),
-                    color = Color.White
+                        letterSpacing = (-0.5).sp,
+                        color = Color.White
+                    )
                 )
                 Text(
                     text = "Welcome, ${user?.displayName?.split(" ")?.firstOrNull() ?: "Student"}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.55f)
+                    style = MiuixTheme.textStyles.footnote2.copy(
+                        color = Color.White.copy(alpha = 0.55f)
+                    )
                 )
             }
             Box(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary)
+                    .background(MiuixTheme.colorScheme.primary)
                     .clickable { showProfile = true },
                 contentAlignment = Alignment.Center
             ) {
@@ -196,8 +209,8 @@ private fun StudyHomeScreen(onSemClick: (Int) -> Unit) {
                 } else {
                     Text(
                         text = user?.displayName?.take(1) ?: "A",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onPrimary
+                        style = MiuixTheme.textStyles.title3.copy(fontWeight = FontWeight.Bold),
+                        color = MiuixTheme.colorScheme.onPrimary
                     )
                 }
             }
@@ -214,14 +227,14 @@ private fun StudyHomeScreen(onSemClick: (Int) -> Unit) {
 
             Text(
                 text = "Let's Study",
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
-                color = MaterialTheme.colorScheme.onBackground
+                style = MiuixTheme.textStyles.title1.copy(fontWeight = FontWeight.ExtraBold),
+                color = MiuixTheme.colorScheme.onBackground
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = "B.Tech First Year",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = MiuixTheme.textStyles.title4.copy(fontWeight = FontWeight.SemiBold),
+                color = MiuixTheme.colorScheme.onSurfaceSecondary
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -259,28 +272,25 @@ private fun SemesterCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(0.dp)
+            .padding(bottom = 12.dp),
+        onClick = onClick,
+        pressFeedbackType = PressFeedbackType.Sink
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(18.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
                     .size(56.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(MaterialTheme.colorScheme.primary),
+                    .background(MiuixTheme.colorScheme.primary),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = romanNum,
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
-                    color = MaterialTheme.colorScheme.onPrimary
+                    style = MiuixTheme.textStyles.title2.copy(fontWeight = FontWeight.ExtraBold),
+                    color = MiuixTheme.colorScheme.onPrimary
                 )
             }
 
@@ -289,22 +299,22 @@ private fun SemesterCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "AKTU · $title",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MiuixTheme.textStyles.title4.copy(fontWeight = FontWeight.Bold),
+                    color = MiuixTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Rounded.PlayCircle,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MiuixTheme.colorScheme.primary,
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                        style = MiuixTheme.textStyles.footnote1,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -315,7 +325,7 @@ private fun SemesterCard(
             Icon(
                 imageVector = Icons.Rounded.ChevronRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
                 modifier = Modifier.size(22.dp)
             )
         }
@@ -335,7 +345,7 @@ private fun SemesterSubjectsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(MiuixTheme.colorScheme.background)
     ) {
         // Top bar
         Row(
@@ -356,12 +366,12 @@ private fun SemesterSubjectsScreen(
             Column {
                 Text(
                     text = "AKTU · $title",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    style = MiuixTheme.textStyles.title4.copy(fontWeight = FontWeight.Bold),
                     color = Color.White
                 )
                 Text(
                     text = "${subjects.size} subjects",
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MiuixTheme.textStyles.footnote2,
                     color = Color.White.copy(alpha = 0.55f)
                 )
             }
@@ -379,26 +389,26 @@ private fun SemesterSubjectsScreen(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.primary),
+                        .background(MiuixTheme.colorScheme.primary),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = romanNum,
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
-                        color = MaterialTheme.colorScheme.onPrimary
+                        style = MiuixTheme.textStyles.title2.copy(fontWeight = FontWeight.ExtraBold),
+                        color = MiuixTheme.colorScheme.onPrimary
                     )
                 }
                 Spacer(modifier = Modifier.width(14.dp))
                 Column {
                     Text(
                         text = "B.Tech First Year",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MiuixTheme.textStyles.footnote2,
+                        color = MiuixTheme.colorScheme.onSurfaceSecondary
                     )
                     Text(
                         text = title,
-                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
-                        color = MaterialTheme.colorScheme.onBackground
+                        style = MiuixTheme.textStyles.title2.copy(fontWeight = FontWeight.ExtraBold),
+                        color = MiuixTheme.colorScheme.onBackground
                     )
                 }
             }
@@ -407,8 +417,8 @@ private fun SemesterSubjectsScreen(
 
             Text(
                 text = "SUBJECTS",
-                style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.5.sp),
-                color = MaterialTheme.colorScheme.primary,
+                style = MiuixTheme.textStyles.footnote2.copy(letterSpacing = 1.5.sp),
+                color = MiuixTheme.colorScheme.primary,
                 fontWeight = FontWeight.SemiBold
             )
 
@@ -441,36 +451,33 @@ private fun SubjectPillCard(
 ) {
     Card(
         modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(0.dp)
+            .fillMaxWidth(),
+        onClick = onClick,
+        pressFeedbackType = PressFeedbackType.Sink
     ) {
         Row(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
+                .fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                    .background(MiuixTheme.colorScheme.secondaryContainer),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = number.toString(),
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                    style = MiuixTheme.textStyles.title4.copy(fontWeight = FontWeight.Bold),
+                    color = MiuixTheme.colorScheme.onSecondaryContainer
                 )
             }
             Spacer(modifier = Modifier.width(16.dp))
             Text(
                 text = subject,
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MiuixTheme.textStyles.body1.copy(fontWeight = FontWeight.Medium),
+                color = MiuixTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
@@ -478,7 +485,7 @@ private fun SubjectPillCard(
             Icon(
                 imageVector = Icons.Rounded.ChevronRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
                 modifier = Modifier.size(22.dp)
             )
         }
@@ -546,74 +553,84 @@ fun ProfileSettingsDialog(onDismiss: () -> Unit) {
         }
     }
 
-    AlertDialog(
+    OverlayDialog(
+        show = true,
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        title = { Text("Edit Profile", style = MaterialTheme.typography.titleLarge) },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(contentAlignment = Alignment.BottomEnd) {
-                    Box(
-                        modifier = Modifier.size(100.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary).clickable {
-                            if (!isUploading) {
-                                launcher.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly))
-                            }
-                        },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (activeRemoteUrl != null && !isUploading) {
-                            coil.compose.AsyncImage(
-                                model = activeRemoteUrl,
-                                contentDescription = "Profile",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                            )
-                        } else if (isUploading) {
-                            CircularProgressIndicator(progress = { uploadProgress }, color = Color.White)
-                        } else {
-                            Text(user?.displayName?.take(1) ?: "A", color = MaterialTheme.colorScheme.onPrimary, fontSize = 40.sp)
+        title = "Edit Profile"
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(contentAlignment = Alignment.BottomEnd) {
+                Box(
+                    modifier = Modifier.size(100.dp).clip(CircleShape).background(MiuixTheme.colorScheme.primary).clickable {
+                        if (!isUploading) {
+                            launcher.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly))
                         }
-                    }
-                    
-                    Box(
-                        modifier = Modifier
-                            .offset(x = (-4).dp, y = (-4).dp)
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Rounded.Edit, contentDescription = "Edit", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                    },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (activeRemoteUrl != null && !isUploading) {
+                        coil.compose.AsyncImage(
+                            model = activeRemoteUrl,
+                            contentDescription = "Profile",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    } else if (isUploading) {
+                        CircularProgressIndicator(progress = { uploadProgress }, color = Color.White)
+                    } else {
+                        Text(user?.displayName?.take(1) ?: "A", color = MiuixTheme.colorScheme.onPrimary, fontSize = 40.sp)
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Display Name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                
+                Box(
+                    modifier = Modifier
+                        .offset(x = (-4).dp, y = (-4).dp)
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(MiuixTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Rounded.Edit, contentDescription = "Edit", modifier = Modifier.size(16.dp), tint = MiuixTheme.colorScheme.onPrimaryContainer)
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            TextField(
+                value = name,
+                onValueChange = { name = it },
+                label = "Display Name",
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                TextButton(
+                    text = "Cancel",
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f)
                 )
-            }
-        },
-        confirmButton = {
-            Button(onClick = {
-                if (name.isNotBlank()) {
-                    val req = com.google.firebase.auth.UserProfileChangeRequest.Builder().setDisplayName(name).build()
-                    auth.currentUser?.updateProfile(req)?.addOnCompleteListener {
-                        user = auth.currentUser
-                        onDismiss()
-                    }
+                Spacer(Modifier.width(16.dp))
+                Button(
+                    onClick = {
+                        if (name.isNotBlank()) {
+                            val req = com.google.firebase.auth.UserProfileChangeRequest.Builder().setDisplayName(name).build()
+                            auth.currentUser?.updateProfile(req)?.addOnCompleteListener {
+                                user = auth.currentUser
+                                onDismiss()
+                            }
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors()
+                ) {
+                    Text("Save")
                 }
-            }) {
-                Text("Save")
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
         }
-    )
+    }
 }

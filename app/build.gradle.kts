@@ -20,11 +20,7 @@ fun secret(key: String): String {
 
 android {
     namespace = "com.BizarreX.study"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.BizarreX.study"
@@ -84,6 +80,11 @@ dependencies {
     implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.lifecycle.viewmodel.compose)
+
+    // Miuix UI
+    implementation(libs.miuix.ui)
+    implementation(libs.miuix.icons)
+    implementation(libs.miuix.squircle)
 
     // Firebase
     implementation(platform(libs.firebase.bom))

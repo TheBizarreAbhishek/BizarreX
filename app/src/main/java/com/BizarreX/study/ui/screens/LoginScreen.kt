@@ -10,19 +10,25 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.School
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.BizarreX.study.AuthState
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardDefaults
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import androidx.compose.material3.CircularProgressIndicator
 
 @Composable
 fun LoginScreen(
@@ -83,21 +89,22 @@ fun LoginScreen(
             // Brand name
             Text(
                 text = "BizarreX",
-                style = MaterialTheme.typography.displaySmall.copy(
+                style = MiuixTheme.textStyles.title1.copy(
                     fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = (-1).sp
-                ),
-                color = Color.White
+                    letterSpacing = (-1).sp,
+                    color = Color.White
+                )
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 text = "Your ultimate AKTU study companion.\nLearn together, grow together.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.6f),
-                textAlign = TextAlign.Center,
-                lineHeight = 22.sp
+                style = MiuixTheme.textStyles.body1.copy(
+                    color = Color.White.copy(alpha = 0.6f),
+                    textAlign = TextAlign.Center,
+                    lineHeight = 22.sp
+                )
             )
 
             Spacer(modifier = Modifier.height(64.dp))
@@ -109,13 +116,13 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp),
-                shape = RoundedCornerShape(14.dp),
+                cornerRadius = 14.dp,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
+                    color = Color.White,
                     contentColor = Color(0xFF1F1F1F),
-                    disabledContainerColor = Color.White.copy(alpha = 0.6f)
-                ),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                    disabledColor = Color.White.copy(alpha = 0.6f),
+                    disabledContentColor = Color(0xFF1F1F1F).copy(alpha = 0.6f)
+                )
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
@@ -134,7 +141,7 @@ fun LoginScreen(
                     ) {
                         Text(
                             text = "G",
-                            style = MaterialTheme.typography.titleMedium.copy(
+                            style = MiuixTheme.textStyles.title3.copy(
                                 fontWeight = FontWeight.ExtraBold,
                                 color = Color(0xFF4285F4)
                             )
@@ -143,7 +150,7 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = "Continue with Google",
-                        style = MaterialTheme.typography.titleMedium.copy(
+                        style = MiuixTheme.textStyles.button.copy(
                             fontWeight = FontWeight.SemiBold
                         )
                     )
@@ -154,15 +161,15 @@ fun LoginScreen(
             if (errorMessage != null) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                    shape = RoundedCornerShape(12.dp)
+                    colors = CardDefaults.defaultColors(color = MiuixTheme.colorScheme.errorContainer),
+                    insideMargin = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
                 ) {
                     Text(
                         text = errorMessage,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        textAlign = TextAlign.Center
+                        style = MiuixTheme.textStyles.footnote1.copy(
+                            color = MiuixTheme.colorScheme.onErrorContainer,
+                            textAlign = TextAlign.Center
+                        )
                     )
                 }
             }
@@ -171,9 +178,10 @@ fun LoginScreen(
 
             Text(
                 text = "By continuing, you agree to our\nTerms of Service and Privacy Policy",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.35f),
-                textAlign = TextAlign.Center
+                style = MiuixTheme.textStyles.footnote2.copy(
+                    color = Color.White.copy(alpha = 0.35f),
+                    textAlign = TextAlign.Center
+                )
             )
         }
     }

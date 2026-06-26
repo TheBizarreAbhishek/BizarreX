@@ -22,12 +22,13 @@ import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.NavigationBar
+import top.yukonga.miuix.kmp.basic.NavigationBarItem
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -55,10 +56,10 @@ import com.BizarreX.study.ui.theme.BizarreXTheme
 import com.BizarreX.study.utils.UpdateChecker
 import com.BizarreX.study.utils.UpdateInfo
 import com.BizarreX.study.utils.VideoDownloadManager
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.TextButton
+import top.yukonga.miuix.kmp.overlay.OverlayDialog
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -173,39 +174,37 @@ fun RootApp(
         }
 
         // ── Update Dialog ────────────────────────────────────────────────
-        AlertDialog(
-            onDismissRequest = { /* mandatory — cannot dismiss */ },
-            title = { Text("Update Available 🚀", fontWeight = FontWeight.Bold) },
-            text = {
-                androidx.compose.foundation.layout.Column {
-                    Text("BizarreX v${info.latestVersion} is available (you have v${info.currentVersion}).")
-                    if (info.releaseNotes.isNotBlank()) {
-                        androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(4.dp))
-                        Text(info.releaseNotes, style = MaterialTheme.typography.bodySmall)
-                    }
-                    if (isDownloading && !downloadDone) {
-                        androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(12.dp))
-                        Text("Downloading… check notification bar for progress.", style = MaterialTheme.typography.bodySmall)
-                        androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(6.dp))
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    }
+        OverlayDialog(
+            show = true,
+            title = "Update Available 🚀",
+            summary = "BizarreX v${info.latestVersion} is available (you have v${info.currentVersion}).",
+            onDismissRequest = { /* mandatory — cannot dismiss */ }
+        ) {
+            androidx.compose.foundation.layout.Column {
+                if (info.releaseNotes.isNotBlank()) {
+                    androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(4.dp))
+                    Text(info.releaseNotes, style = MiuixTheme.textStyles.paragraph)
                 }
-            },
-            confirmButton = {
+                if (isDownloading && !downloadDone) {
+                    androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(12.dp))
+                    Text("Downloading… check notification bar for progress.", style = MiuixTheme.textStyles.paragraph)
+                    androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(6.dp))
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+                androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(16.dp))
                 androidx.compose.foundation.layout.Row(
                     horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
                 ) {
-                    // "Open in Browser" — always visible, safest fallback
-                    OutlinedButton(
+                    Button(
                         onClick = {
                             val browserIntent = android.content.Intent(android.content.Intent.ACTION_VIEW,
                                 android.net.Uri.parse(info.apkDownloadUrl))
                             browserIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                             try { context.startActivity(browserIntent) } catch (_: Exception) {}
-                        }
+                        },
+                        modifier = Modifier.weight(1f)
                     ) { Text("Browser") }
 
-                    // "Download in App" via DownloadManager
                     Button(
                         onClick = {
                             if (!isDownloading) {
@@ -221,12 +220,13 @@ fun RootApp(
                                 downloadId = dm.enqueue(req)
                             }
                         },
-                        enabled = !isDownloading
+                        enabled = !isDownloading,
+                        colors = ButtonDefaults.buttonColors(),
+                        modifier = Modifier.weight(1f)
                     ) { Text(if (isDownloading) "Downloading…" else "Download") }
                 }
-            },
-            dismissButton = null
-        )
+            }
+        }
     }
 
 
@@ -274,28 +274,17 @@ fun BizarreXApp(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = MiuixTheme.colorScheme.background,
         bottomBar = {
             if (isBottomBarVisible) {
-                NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
+                NavigationBar(color = MiuixTheme.colorScheme.surfaceContainer) {
                     navItems.forEachIndexed { index, item ->
                         val selected = selectedTab == index
                         NavigationBarItem(
                             selected = selected,
                             onClick = { selectedTab = index },
-                            icon = {
-                                Icon(
-                                    imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
-                                    contentDescription = item.label
-                                )
-                            },
-                            label = {
-                                Text(
-                                    text = item.label,
-                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
-                                )
-                            },
-                            alwaysShowLabel = true
+                            icon = if (selected) item.selectedIcon else item.unselectedIcon,
+                            label = item.label
                         )
                     }
                 }
