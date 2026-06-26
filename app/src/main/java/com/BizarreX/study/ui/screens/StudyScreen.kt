@@ -167,51 +167,59 @@ private fun StudyHomeScreen(onSemClick: (Int) -> Unit) {
             .fillMaxSize()
             .background(MiuixTheme.colorScheme.background)
     ) {
-        // Top App Bar — Black
-        Row(
+        // Modern Floating Header Card / Pill
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Black)
-                .padding(horizontal = 20.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            cornerRadius = 20.dp,
+            colors = CardDefaults.defaultColors(
+                color = MiuixTheme.colorScheme.surfaceContainer
+            )
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "BizarreX",
-                    style = MiuixTheme.textStyles.title2.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = (-0.5).sp,
-                        color = Color.White
-                    )
-                )
-                Text(
-                    text = "Welcome, ${user?.displayName?.split(" ")?.firstOrNull() ?: "Student"}",
-                    style = MiuixTheme.textStyles.footnote2.copy(
-                        color = Color.White.copy(alpha = 0.55f)
-                    )
-                )
-            }
-            Box(
+            Row(
                 modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MiuixTheme.colorScheme.primary)
-                    .clickable { showProfile = true },
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                if (activeRemoteUrl != null) {
-                    coil.compose.AsyncImage(
-                        model = activeRemoteUrl,
-                        contentDescription = "Profile",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                    )
-                } else {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = user?.displayName?.take(1) ?: "A",
-                        style = MiuixTheme.textStyles.title3.copy(fontWeight = FontWeight.Bold),
-                        color = MiuixTheme.colorScheme.onPrimary
+                        text = "BizarreX",
+                        style = MiuixTheme.textStyles.title2.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = (-0.5).sp,
+                            color = MiuixTheme.colorScheme.primary
+                        )
                     )
+                    Text(
+                        text = "Welcome, ${user?.displayName?.split(" ")?.firstOrNull() ?: "Student"}",
+                        style = MiuixTheme.textStyles.footnote2,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(MiuixTheme.colorScheme.primary)
+                        .clickable { showProfile = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (activeRemoteUrl != null) {
+                        coil.compose.AsyncImage(
+                            model = activeRemoteUrl,
+                            contentDescription = "Profile",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    } else {
+                        Text(
+                            text = user?.displayName?.take(1) ?: "A",
+                            style = MiuixTheme.textStyles.title3.copy(fontWeight = FontWeight.Bold),
+                            color = MiuixTheme.colorScheme.onPrimary
+                        )
+                    }
                 }
             }
         }
@@ -347,33 +355,42 @@ private fun SemesterSubjectsScreen(
             .fillMaxSize()
             .background(MiuixTheme.colorScheme.background)
     ) {
-        // Top bar
-        Row(
+        // Top bar - Modern Floating Card / Pill
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Black)
-                .padding(horizontal = 8.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            cornerRadius = 20.dp,
+            colors = CardDefaults.defaultColors(
+                color = MiuixTheme.colorScheme.surfaceContainer
+            )
         ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color.White
-                )
-            }
-            Spacer(modifier = Modifier.width(4.dp))
-            Column {
-                Text(
-                    text = "AKTU · $title",
-                    style = MiuixTheme.textStyles.title4.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White
-                )
-                Text(
-                    text = "${subjects.size} subjects",
-                    style = MiuixTheme.textStyles.footnote2,
-                    color = Color.White.copy(alpha = 0.55f)
-                )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MiuixTheme.colorScheme.onSurface
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Column {
+                    Text(
+                        text = "AKTU · $title",
+                        style = MiuixTheme.textStyles.title4.copy(fontWeight = FontWeight.Bold),
+                        color = MiuixTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "${subjects.size} subjects",
+                        style = MiuixTheme.textStyles.footnote2,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                    )
+                }
             }
         }
 
@@ -381,64 +398,114 @@ private fun SemesterSubjectsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            // Header
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MiuixTheme.colorScheme.primary),
-                    contentAlignment = Alignment.Center
+            // Header Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                cornerRadius = 16.dp,
+                colors = CardDefaults.defaultColors(color = MiuixTheme.colorScheme.surfaceContainer)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = romanNum,
-                        style = MiuixTheme.textStyles.title2.copy(fontWeight = FontWeight.ExtraBold),
-                        color = MiuixTheme.colorScheme.onPrimary
-                    )
-                }
-                Spacer(modifier = Modifier.width(14.dp))
-                Column {
-                    Text(
-                        text = "B.Tech First Year",
-                        style = MiuixTheme.textStyles.footnote2,
-                        color = MiuixTheme.colorScheme.onSurfaceSecondary
-                    )
-                    Text(
-                        text = title,
-                        style = MiuixTheme.textStyles.title2.copy(fontWeight = FontWeight.ExtraBold),
-                        color = MiuixTheme.colorScheme.onBackground
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MiuixTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = romanNum,
+                            style = MiuixTheme.textStyles.title2.copy(fontWeight = FontWeight.ExtraBold),
+                            color = MiuixTheme.colorScheme.onPrimary
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text(
+                            text = "B.Tech First Year",
+                            style = MiuixTheme.textStyles.footnote2,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                        )
+                        Text(
+                            text = title,
+                            style = MiuixTheme.textStyles.title3.copy(fontWeight = FontWeight.ExtraBold),
+                            color = MiuixTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             Text(
                 text = "SUBJECTS",
                 style = MiuixTheme.textStyles.footnote2.copy(letterSpacing = 1.5.sp),
                 color = MiuixTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            // Grouped Subjects Card (Compact & Filled)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                cornerRadius = 16.dp,
+                colors = CardDefaults.defaultColors(color = MiuixTheme.colorScheme.surfaceContainer)
+            ) {
+                Column {
+                    subjects.forEachIndexed { index, subject ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSubjectClick(subject) }
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(MiuixTheme.colorScheme.secondaryContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = (index + 1).toString(),
+                                    style = MiuixTheme.textStyles.title4.copy(fontWeight = FontWeight.Bold),
+                                    color = MiuixTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(
+                                text = subject,
+                                style = MiuixTheme.textStyles.body1.copy(fontWeight = FontWeight.Medium),
+                                color = MiuixTheme.colorScheme.onSurface,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Icon(
+                                imageVector = Icons.Rounded.ChevronRight,
+                                contentDescription = null,
+                                tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
 
-            // Pills — each takes equal share of remaining height
-            subjects.forEachIndexed { index, subject ->
-                SubjectPillCard(
-                    modifier = Modifier.weight(1f),
-                    number = index + 1,
-                    subject = subject,
-                    onClick = { onSubjectClick(subject) }
-                )
-                if (index < subjects.lastIndex) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                        if (index < subjects.lastIndex) {
+                            androidx.compose.material3.HorizontalDivider(
+                                color = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 }
+
 
 // ── Subject Pill Card ─────────────────────────────────────────────────────────
 

@@ -125,29 +125,48 @@ fun SubjectDetailScreen(
             .background(MiuixTheme.colorScheme.background)
     ) {
         // ── Top bar ──────────────────────────────────────────────────────────
-        Row(
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Black)
-                .padding(horizontal = 8.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            cornerRadius = 20.dp,
+            colors = CardDefaults.defaultColors(
+                color = MiuixTheme.colorScheme.surfaceContainer
+            )
         ) {
-            IconButton(onClick = { if (navStack.size > 1) navStack.removeLast() else onBack() }) {
-                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = Color.White)
-            }
-            Spacer(modifier = Modifier.width(4.dp))
-            Column {
-                Text(
-                    text = current.displayName,
-                    style = MiuixTheme.textStyles.title4.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis
-                )
-                val subtitle = when {
-                    isLoading -> "Loading…"
-                    contents?.hasSubFolders == true -> "${contents!!.folders.size} sections"
-                    else -> "${contents?.videos?.size ?: 0} lectures"
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { if (navStack.size > 1) navStack.removeLast() else onBack() }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MiuixTheme.colorScheme.onSurface
+                    )
                 }
-                Text(text = subtitle, style = MiuixTheme.textStyles.footnote2, color = Color.White.copy(alpha = 0.55f))
+                Spacer(modifier = Modifier.width(4.dp))
+                Column {
+                    Text(
+                        text = current.displayName,
+                        style = MiuixTheme.textStyles.title4.copy(fontWeight = FontWeight.Bold),
+                        color = MiuixTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    val subtitle = when {
+                        isLoading -> "Loading…"
+                        contents?.hasSubFolders == true -> "${contents!!.folders.size} sections"
+                        else -> "${contents?.videos?.size ?: 0} lectures"
+                    }
+                    Text(
+                        text = subtitle,
+                        style = MiuixTheme.textStyles.footnote2,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                    )
+                }
             }
         }
 

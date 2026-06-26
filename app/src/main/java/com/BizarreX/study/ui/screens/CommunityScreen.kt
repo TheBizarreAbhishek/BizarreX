@@ -430,106 +430,128 @@ fun CommunityChatContent(currentUser: FirebaseUser, onBack: () -> Unit) {
     ) {
         // ── Top Bar / Action Bar ──────────────────────────────────────────────────────────
         if (selectedMessageIds.isNotEmpty()) {
-            Row(
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.primaryContainer)
-                    .padding(start = 8.dp, end = 20.dp, top = 12.dp, bottom = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                cornerRadius = 20.dp,
+                colors = CardDefaults.defaultColors(
+                    color = MiuixTheme.colorScheme.primaryContainer
+                )
             ) {
-                IconButton(onClick = { selectedMessageIds.clear() }) {
-                    Icon(Icons.Default.Close, contentDescription = "Cancel", tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Text(
-                    text = "${selectedMessageIds.size}",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                
-                Icon(
-                    Icons.Default.ContentCopy, 
-                    contentDescription = "Copy", 
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(24.dp).clickable {
-                        val texts = selectedMessageIds.mapNotNull { id -> messages.find { it.id == id }?.text }.filter { it.isNotBlank() }
-                        clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(texts.joinToString("\n")))
-                        selectedMessageIds.clear()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { selectedMessageIds.clear() }) {
+                        Icon(
+                            imageVector = Icons.Default.Close, 
+                            contentDescription = "Cancel", 
+                            tint = MiuixTheme.colorScheme.onPrimaryContainer
+                        )
                     }
-                )
-                
-                Spacer(modifier = Modifier.width(20.dp))
-
-                val canDeleteAll = selectedMessageIds.all { id -> 
-                    val msg = messages.find { it.id == id }
-                    msg != null && msg.senderId == currentUser.uid
-                }
-                if (canDeleteAll) {
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = "${selectedMessageIds.size}",
+                        style = MiuixTheme.textStyles.title4.copy(fontWeight = FontWeight.Bold),
+                        color = MiuixTheme.colorScheme.onPrimaryContainer
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    
                     Icon(
-                        Icons.Default.Delete, 
-                        contentDescription = "Delete Selected", 
-                        tint = MaterialTheme.colorScheme.error,
+                        imageVector = Icons.Default.ContentCopy, 
+                        contentDescription = "Copy", 
+                        tint = MiuixTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(24.dp).clickable {
-                            val toDelete = selectedMessageIds.toList()
+                            val texts = selectedMessageIds.mapNotNull { id -> messages.find { it.id == id }?.text }.filter { it.isNotBlank() }
+                            clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(texts.joinToString("\n")))
                             selectedMessageIds.clear()
-                            toDelete.forEach { id ->
-                                db.collection("community_chat").document(id).delete()
-                            }
                         }
                     )
+                    
+                    Spacer(modifier = Modifier.width(20.dp))
+
+                    val canDeleteAll = selectedMessageIds.all { id -> 
+                        val msg = messages.find { it.id == id }
+                        msg != null && msg.senderId == currentUser.uid
+                    }
+                    if (canDeleteAll) {
+                        Icon(
+                            imageVector = Icons.Default.Delete, 
+                            contentDescription = "Delete Selected", 
+                            tint = MiuixTheme.colorScheme.error,
+                            modifier = Modifier.size(24.dp).clickable {
+                                val toDelete = selectedMessageIds.toList()
+                                selectedMessageIds.clear()
+                                toDelete.forEach { id ->
+                                    db.collection("community_chat").document(id).delete()
+                                }
+                            }
+                        )
+                    }
                 }
             }
         } else {
-            Row(
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.Black)
-                    .padding(start = 8.dp, end = 20.dp, top = 12.dp, bottom = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                cornerRadius = 20.dp,
+                colors = CardDefaults.defaultColors(
+                    color = MiuixTheme.colorScheme.surfaceContainer
+                )
             ) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color.White
-                    )
-                }
-                Spacer(modifier = Modifier.width(4.dp))
-                Box(
+                Row(
                     modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Groups,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = "BizarreX Community",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = Color.White
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(7.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF4CAF50))
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MiuixTheme.colorScheme.onSurface
                         )
-                        Spacer(modifier = Modifier.width(5.dp))
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(MiuixTheme.colorScheme.primaryContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Groups,
+                            contentDescription = null,
+                            tint = MiuixTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
                         Text(
-                            text = "Live group chat",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.55f)
+                            text = "BizarreX Community",
+                            style = MiuixTheme.textStyles.title4.copy(fontWeight = FontWeight.Bold),
+                            color = MiuixTheme.colorScheme.onSurface
                         )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(7.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF4CAF50))
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(
+                                text = "Live group chat",
+                                style = MiuixTheme.textStyles.footnote2,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                            )
+                        }
                     }
                 }
             }
